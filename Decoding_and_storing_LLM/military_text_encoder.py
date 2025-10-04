@@ -12,7 +12,7 @@ from datetime import datetime
 
 class MilitaryTextEncoder:
     def __init__(self, model_name: str = "microsoft/phi-1_5", max_length: int = 512):
-        """Initialize with a small, accessible model for text processing."""
+        """Initializne with a small, accessible model for text processing."""
         self.model_name = model_name
         self.max_length = max_length
         
@@ -22,7 +22,7 @@ class MilitaryTextEncoder:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 trust_remote_code=True,
-                torch_dtype=torch.float32,
+                dtype=torch.float32,
                 device_map="auto" if torch.cuda.is_available() else None
             )
             self.pipe = pipeline(
@@ -118,3 +118,30 @@ class MilitaryTextEncoder:
         results["report_path"] = report_path
 
         return results
+
+if __name__ == "__main__":
+    # Create encoder instance
+    encoder = MilitaryTextEncoder()
+    
+    # Example messy text input
+    messy_text = """
+    Alpha team needs 2 move quickly!! coordinates are (123.45, 678.90)
+    time: 0600Z tmrw... Bravo & Charlie providing backup
+    THIS IS URGENT/HIGH PRIORITY!!!
+    """
+    
+    try:
+        # Process and save both JSON and reports
+        results = encoder.process_and_save_all(messy_text, ReportType.EOINCREP)
+        
+        if results['status'] == 'success':
+            print("\nProcessing completed successfully!")
+            print(f"JSON file saved to: {results['json_path']}")
+            print(f"Report file saved to: {results['report_path']}")
+            print("\nReport Content:")
+            print(results['report_content'])
+        else:
+            print(f"\nError occurred: {results['error']}")
+            
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
