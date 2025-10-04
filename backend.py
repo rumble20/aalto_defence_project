@@ -174,6 +174,94 @@ async def get_all_soldiers():
     columns = ["soldier_id", "name", "rank", "unit_id", "device_id", "unit_name", "unit_level"]
     return {"soldiers": [dict(zip(columns, row)) for row in rows]}
 
+@app.get("/hierarchy")
+async def get_hierarchy():
+    """Get the complete military hierarchy with nested structure."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Get all units with their hierarchy information
+    c.execute("""
+        SELECT u.unit_id, u.name, u.parent_unit_id, u.level, u.created_at
+        FROM units u
+        ORDER BY u.level, u.name
+    """)
+    units = c.fetchall()
+    
+    # Get all soldiers grouped by unit
+    c.execute("""
+        SELECT s.soldier_id, s.name, s.rank, s.unit_id, s.device_id, s.status, s.created_at, s.last_seen
+        FROM soldiers s
+        ORDER BY s.unit_id, s.name
+    """)
+    soldiers = c.fetchall()
+    
+    conn.close()
+    
+    # Group soldiers by unit
+    soldiers_by_unit = {}
+    for soldier in soldiers:
+        unit_id = soldier[3]
+        if unit_id not in soldiers_by_unit:
+            soldiers_by_unit[unit_id] = []
+        soldiers_by_unit[unit_id].append({
+            "soldier_id": soldier[0],
+            "name": soldier[1],
+            "rank": soldier[2],
+            "unit_id": soldier[3],
+            "device_id": soldier[4],
+            "status": soldier[5],
+            "created_at": soldier[6],
+            "last_seen": soldier[7]
+        })
+    
+    # Build hierarchy structure
+    hierarchy = []
+    for unit in units:
+        unit_data = {
+            "unit_id": unit[0],
+            "name": unit[1],
+            "parent_unit_id": unit[2],
+            "level": unit[3],
+            "created_at": unit[4],
+            "soldiers": soldiers_by_unit.get(unit[0], [])
+        }
+        hierarchy.append(unit_data)
+    
+    return {"hierarchy": hierarchy}
+
+@app.get("/units/{unit_id}/soldiers")
+async def get_unit_soldiers(unit_id: str):
+    """Get all soldiers in a specific unit."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT s.soldier_id, s.name, s.rank, s.unit_id, s.device_id, s.status, s.created_at, s.last_seen
+        FROM soldiers s
+        WHERE s.unit_id = ?
+        ORDER BY s.name
+    """, (unit_id,))
+    
+    soldiers = c.fetchall()
+    conn.close()
+    
+    return {
+        "soldiers": [
+            {
+                "soldier_id": s[0],
+                "name": s[1],
+                "rank": s[2],
+                "unit_id": s[3],
+                "device_id": s[4],
+                "status": s[5],
+                "created_at": s[6],
+                "last_seen": s[7]
+            }
+            for s in soldiers
+        ]
+    }
+
 @app.get("/soldiers/{soldier_id}/raw_inputs")
 async def get_soldier_raw_inputs(soldier_id: str, limit: int = 500):
     """Get raw inputs from a specific soldier."""
@@ -269,6 +357,143 @@ async def create_report(soldier_id: str, report_data: Dict[str, Any]):
         conn.close()
         
         return {"message": "Report created successfully", "report_id": report_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/soldiers/{soldier_id}/raw_inputs")
+async def create_raw_input(soldier_id: str, input_data: Dict[str, Any]):
+    """Create a new raw input from a soldier."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Verify soldier exists
+        c.execute("SELECT soldier_id FROM soldiers WHERE soldier_id = ?", (soldier_id,))
+        if not c.fetchone():
+            raise HTTPException(status_code=404, detail="Soldier not found")
+        
+        input_id = str(uuid.uuid4())
+        timestamp = input_data.get("timestamp", datetime.now().isoformat())
+        
+        c.execute("""
+            INSERT INTO soldier_raw_inputs (input_id, soldier_id, timestamp, raw_text, raw_audio_ref, input_type, confidence, location_ref)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            input_id, soldier_id, timestamp,
+            input_data.get("raw_text", ""),
+            input_data.get("raw_audio_ref"),
+            input_data.get("input_type", "voice"),
+            input_data.get("confidence", 0.0),
+            input_data.get("location_ref")
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Raw input created successfully", "input_id": input_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/soldiers")
+async def create_soldier(soldier_data: Dict[str, Any]):
+    """Create a new soldier."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Verify unit exists
+        unit_id = soldier_data.get("unit_id")
+        c.execute("SELECT unit_id FROM units WHERE unit_id = ?", (unit_id,))
+        if not c.fetchone():
+            raise HTTPException(status_code=404, detail="Unit not found")
+        
+        soldier_id = soldier_data.get("soldier_id", str(uuid.uuid4()))
+        timestamp = datetime.now().isoformat()
+        
+        c.execute("""
+            INSERT INTO soldiers (soldier_id, name, rank, unit_id, device_id, status, created_at, last_seen)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            soldier_id,
+            soldier_data.get("name"),
+            soldier_data.get("rank"),
+            unit_id,
+            soldier_data.get("device_id"),
+            soldier_data.get("status", "active"),
+            timestamp,
+            timestamp
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Soldier created successfully", "soldier_id": soldier_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/units")
+async def create_unit(unit_data: Dict[str, Any]):
+    """Create a new military unit."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Verify parent unit exists if specified
+        parent_unit_id = unit_data.get("parent_unit_id")
+        if parent_unit_id:
+            c.execute("SELECT unit_id FROM units WHERE unit_id = ?", (parent_unit_id,))
+            if not c.fetchone():
+                raise HTTPException(status_code=404, detail="Parent unit not found")
+        
+        unit_id = unit_data.get("unit_id", str(uuid.uuid4()))
+        timestamp = datetime.now().isoformat()
+        
+        c.execute("""
+            INSERT INTO units (unit_id, name, parent_unit_id, level, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            unit_id,
+            unit_data.get("name"),
+            parent_unit_id,
+            unit_data.get("level"),
+            timestamp
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Unit created successfully", "unit_id": unit_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/soldiers/{soldier_id}/status")
+async def update_soldier_status(soldier_id: str, status_data: Dict[str, Any]):
+    """Update a soldier's status and last_seen timestamp."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Verify soldier exists
+        c.execute("SELECT soldier_id FROM soldiers WHERE soldier_id = ?", (soldier_id,))
+        if not c.fetchone():
+            raise HTTPException(status_code=404, detail="Soldier not found")
+        
+        timestamp = datetime.now().isoformat()
+        
+        c.execute("""
+            UPDATE soldiers 
+            SET status = ?, last_seen = ?
+            WHERE soldier_id = ?
+        """, (status_data.get("status"), timestamp, soldier_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"message": "Soldier status updated successfully", "soldier_id": soldier_id, "last_seen": timestamp}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

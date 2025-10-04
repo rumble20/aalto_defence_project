@@ -57,11 +57,14 @@ export function HierarchyTree({
     try {
       const response = await fetch("http://localhost:8000/hierarchy");
       const data = await response.json();
-      setHierarchyData(data.hierarchy || []);
+      
+      // Build proper hierarchy from flat list
+      const hierarchy = buildHierarchy(data.hierarchy || []);
+      setHierarchyData(hierarchy);
 
       // Auto-expand first level
-      if (data.hierarchy && data.hierarchy.length > 0) {
-        const firstLevelIds = data.hierarchy.map((u: Unit) => u.unit_id);
+      if (hierarchy.length > 0) {
+        const firstLevelIds = hierarchy.map((u: Unit) => u.unit_id);
         setExpandedNodes(new Set(firstLevelIds));
       }
     } catch (error) {
@@ -69,6 +72,37 @@ export function HierarchyTree({
     } finally {
       setLoading(false);
     }
+  };
+
+  const buildHierarchy = (flatUnits: Unit[]): Unit[] => {
+    const unitsMap = new Map<string, Unit>();
+    const rootUnits: Unit[] = [];
+
+    // First pass: create map of all units
+    flatUnits.forEach(unit => {
+      unitsMap.set(unit.unit_id, {
+        ...unit,
+        soldiers: unit.soldiers || [],
+        subunits: []
+      });
+    });
+
+    // Second pass: build parent-child relationships
+    flatUnits.forEach(unit => {
+      const unitData = unitsMap.get(unit.unit_id);
+      if (!unitData) return;
+
+      if (unit.parent_unit_id === null) {
+        rootUnits.push(unitData);
+      } else {
+        const parent = unitsMap.get(unit.parent_unit_id);
+        if (parent) {
+          parent.subunits.push(unitData);
+        }
+      }
+    });
+
+    return rootUnits;
   };
 
   const toggleNode = (nodeId: string) => {
@@ -90,28 +124,15 @@ export function HierarchyTree({
       type: "unit",
       level: unit.level,
       unit_id: unit.unit_id,
-      soldiers: unit.soldiers,
-      subunits: unit.subunits,
-      children: [
-        ...unit.soldiers.map(
-          (soldier): TreeNode => ({
-            id: soldier.soldier_id,
-            name: soldier.name,
-            type: "soldier",
-            rank: soldier.rank,
-            soldier_id: soldier.soldier_id,
-            unit_id: soldier.unit_id,
-          })
-        ),
-        ...unit.subunits.map(convertUnitToTreeNode),
-      ],
+      soldiers: unit.soldiers || [],
+      subunits: unit.subunits || [],
     };
   };
 
   const renderUnit = (unit: Unit, depth: number = 0) => {
     const isExpanded = expandedNodes.has(unit.unit_id);
     const isSelected = selectedNodeId === unit.unit_id;
-    const hasChildren = unit.soldiers.length > 0 || unit.subunits.length > 0;
+    const hasChildren = (unit.soldiers?.length || 0) > 0 || (unit.subunits?.length || 0) > 0;
 
     return (
       <div key={unit.unit_id} className="select-none">
@@ -154,19 +175,19 @@ export function HierarchyTree({
             </div>
           </div>
           <div className="text-xs text-muted-foreground font-mono">
-            {unit.soldiers.length}x
+            {unit.soldiers?.length || 0}x
           </div>
         </div>
 
         {isExpanded && (
           <div>
             {/* Render soldiers first */}
-            {unit.soldiers.map((soldier) =>
+            {unit.soldiers?.map((soldier) =>
               renderSoldier(soldier, depth + 1, unit.unit_id)
             )}
 
             {/* Then render subunits */}
-            {unit.subunits.map((subunit) => renderUnit(subunit, depth + 1))}
+            {unit.subunits?.map((subunit) => renderUnit(subunit, depth + 1))}
           </div>
         )}
       </div>

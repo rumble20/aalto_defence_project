@@ -1,0 +1,12 @@
+version: "2"
+authtoken: 33bQDyBGjGsGrNXeqEVbMkqY5v7_2EAARiJ7eGPMa4stCVZ62
+tunnels:
+  backend:
+    proto: http
+    addr: 8000
+  dashboard:
+    proto: http
+    addr: 3000
+  reports:
+    proto: http
+    addr: 3001

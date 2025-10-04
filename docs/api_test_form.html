@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Military Hierarchy API Test Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .response {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎖️ Military Hierarchy API Test Form</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('raw-input')">Raw Input</button>
+            <button class="tab" onclick="showTab('report')">Structured Report</button>
+            <button class="tab" onclick="showTab('soldier')">Create Soldier</button>
+            <button class="tab" onclick="showTab('status')">Update Status</button>
+        </div>
+
+        <!-- Raw Input Tab -->
+        <div id="raw-input" class="tab-content active">
+            <h2>📡 Send Raw Input from Soldier</h2>
+            <form id="rawInputForm">
+                <div class="form-group">
+                    <label for="soldierId">Soldier ID:</label>
+                    <input type="text" id="soldierId" value="ALPHA_01" required>
+                </div>
+                <div class="form-group">
+                    <label for="rawText">Raw Text:</label>
+                    <textarea id="rawText" placeholder="Enter the raw text input from the soldier..." required>Enemy spotted at grid 123456, requesting backup</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="inputType">Input Type:</label>
+                    <select id="inputType">
+                        <option value="voice">Voice</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                        <option value="sensor">Sensor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="confidence">Confidence (0.0 - 1.0):</label>
+                    <input type="number" id="confidence" min="0" max="1" step="0.01" value="0.95">
+                </div>
+                <div class="form-group">
+                    <label for="locationRef">Location Reference:</label>
+                    <input type="text" id="locationRef" placeholder="GPS coordinates or location ID" value="GPS_123456">
+                </div>
+                <button type="submit">Send Raw Input</button>
+            </form>
+        </div>
+
+        <!-- Structured Report Tab -->
+        <div id="report" class="tab-content">
+            <h2>📋 Create Structured Report</h2>
+            <form id="reportForm">
+                <div class="form-group">
+                    <label for="reportSoldierId">Soldier ID:</label>
+                    <input type="text" id="reportSoldierId" value="ALPHA_01" required>
+                </div>
+                <div class="form-group">
+                    <label for="reportType">Report Type:</label>
+                    <select id="reportType">
+                        <option value="SITREP">SITREP (Situation Report)</option>
+                        <option value="MISSION_COMPLETE">Mission Complete</option>
+                        <option value="MEDEVAC_REQUEST">Medical Evacuation Request</option>
+                        <option value="ENEMY_CONTACT">Enemy Contact</option>
+                        <option value="STATUS_UPDATE">Status Update</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="structuredData">Structured Data (JSON):</label>
+                    <textarea id="structuredData" placeholder="Enter structured data in JSON format...">{
+  "enemy_contact": true,
+  "location": "grid 123456",
+  "threat_level": "medium",
+  "casualties": 0,
+  "ammunition_status": "adequate",
+  "weather": "clear",
+  "visibility": "good"
+}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="reportConfidence">Confidence (0.0 - 1.0):</label>
+                    <input type="number" id="reportConfidence" min="0" max="1" step="0.01" value="0.85">
+                </div>
+                <button type="submit">Create Report</button>
+            </form>
+        </div>
+
+        <!-- Create Soldier Tab -->
+        <div id="soldier" class="tab-content">
+            <h2>👤 Create New Soldier</h2>
+            <form id="soldierForm">
+                <div class="form-group">
+                    <label for="newSoldierId">Soldier ID:</label>
+                    <input type="text" id="newSoldierId" placeholder="e.g., ALPHA_02" required>
+                </div>
+                <div class="form-group">
+                    <label for="soldierName">Name:</label>
+                    <input type="text" id="soldierName" placeholder="e.g., Sgt. Jane Doe" required>
+                </div>
+                <div class="form-group">
+                    <label for="soldierRank">Rank:</label>
+                    <input type="text" id="soldierRank" placeholder="e.g., Sergeant" required>
+                </div>
+                <div class="form-group">
+                    <label for="soldierUnit">Unit ID:</label>
+                    <input type="text" id="soldierUnit" placeholder="e.g., PLT_1" required>
+                </div>
+                <div class="form-group">
+                    <label for="deviceId">Device ID:</label>
+                    <input type="text" id="deviceId" placeholder="e.g., RADIO_002" required>
+                </div>
+                <div class="form-group">
+                    <label for="soldierStatus">Status:</label>
+                    <select id="soldierStatus">
+                        <option value="active">Active</option>
+                        <option value="injured">Injured</option>
+                        <option value="missing">Missing</option>
+                        <option value="in_combat">In Combat</option>
+                        <option value="returning">Returning</option>
+                    </select>
+                </div>
+                <button type="submit">Create Soldier</button>
+            </form>
+        </div>
+
+        <!-- Update Status Tab -->
+        <div id="status" class="tab-content">
+            <h2>🔄 Update Soldier Status</h2>
+            <form id="statusForm">
+                <div class="form-group">
+                    <label for="statusSoldierId">Soldier ID:</label>
+                    <input type="text" id="statusSoldierId" value="ALPHA_01" required>
+                </div>
+                <div class="form-group">
+                    <label for="newStatus">New Status:</label>
+                    <select id="newStatus">
+                        <option value="active">Active</option>
+                        <option value="injured">Injured</option>
+                        <option value="missing">Missing</option>
+                        <option value="in_combat">In Combat</option>
+                        <option value="returning">Returning</option>
+                        <option value="mission_complete">Mission Complete</option>
+                    </select>
+                </div>
+                <button type="submit">Update Status</button>
+            </form>
+        </div>
+
+        <div id="response"></div>
+    </div>
+
+    <script>
+        const API_BASE = "http://10.3.35.27:8000"; // Change this to your API URL
+        
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        function showResponse(message, isError = false) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+
+        function showJsonResponse(data) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = `<div class="response">${JSON.stringify(data, null, 2)}</div>`;
+        }
+
+        // Raw Input Form
+        document.getElementById('rawInputForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                raw_text: document.getElementById('rawText').value,
+                input_type: document.getElementById('inputType').value,
+                confidence: parseFloat(document.getElementById('confidence').value),
+                location_ref: document.getElementById('locationRef').value
+            };
+            
+            const soldierId = document.getElementById('soldierId').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/soldiers/${soldierId}/raw_inputs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResponse('✅ Raw input sent successfully!');
+                    showJsonResponse(result);
+                } else {
+                    showResponse(`❌ Error: ${result.detail || 'Unknown error'}`, true);
+                }
+            } catch (error) {
+                showResponse(`❌ Network Error: ${error.message}`, true);
+            }
+        });
+
+        // Report Form
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            let structuredData;
+            try {
+                structuredData = JSON.parse(document.getElementById('structuredData').value);
+            } catch (error) {
+                showResponse('❌ Invalid JSON in structured data field', true);
+                return;
+            }
+            
+            const data = {
+                report_type: document.getElementById('reportType').value,
+                structured_json: structuredData,
+                confidence: parseFloat(document.getElementById('reportConfidence').value)
+            };
+            
+            const soldierId = document.getElementById('reportSoldierId').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/soldiers/${soldierId}/reports`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResponse('✅ Report created successfully!');
+                    showJsonResponse(result);
+                } else {
+                    showResponse(`❌ Error: ${result.detail || 'Unknown error'}`, true);
+                }
+            } catch (error) {
+                showResponse(`❌ Network Error: ${error.message}`, true);
+            }
+        });
+
+        // Soldier Form
+        document.getElementById('soldierForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                soldier_id: document.getElementById('newSoldierId').value,
+                name: document.getElementById('soldierName').value,
+                rank: document.getElementById('soldierRank').value,
+                unit_id: document.getElementById('soldierUnit').value,
+                device_id: document.getElementById('deviceId').value,
+                status: document.getElementById('soldierStatus').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/soldiers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResponse('✅ Soldier created successfully!');
+                    showJsonResponse(result);
+                } else {
+                    showResponse(`❌ Error: ${result.detail || 'Unknown error'}`, true);
+                }
+            } catch (error) {
+                showResponse(`❌ Network Error: ${error.message}`, true);
+            }
+        });
+
+        // Status Form
+        document.getElementById('statusForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                status: document.getElementById('newStatus').value
+            };
+            
+            const soldierId = document.getElementById('statusSoldierId').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/soldiers/${soldierId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showResponse('✅ Status updated successfully!');
+                    showJsonResponse(result);
+                } else {
+                    showResponse(`❌ Error: ${result.detail || 'Unknown error'}`, true);
+                }
+            } catch (error) {
+                showResponse(`❌ Network Error: ${error.message}`, true);
+            }
+        });
+    </script>
+</body>
+</html>
