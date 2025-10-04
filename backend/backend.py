@@ -32,7 +32,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "../database/military_hierarchy.db"
+# Database path - use absolute path based on this file's location
+import os
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "military_hierarchy.db")
 
 # Global MQTT client
 mqtt_client = None

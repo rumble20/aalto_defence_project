@@ -1,9 +1,0 @@
-OUR IDEA IS THE FOLLOWING:
-
-Ongelma: Nykyiselta sotakentältä ei saada informaatiota järkevästi: radion kautta puhuminen, kirjoittaminen vanhentuneilla laitteilla on vaivailloista ja usein jää toteuttamatta. Tiedon lähetys eteenpäin tulee olla muodollista sekä sitä on vaivalloista.
-
-Ratkaisu: Jokaisella sotilaalla tai ryhmänjohtajalla tai muutaman sotilaan johtajalla tulee olemaan älykäs radio joka on aina päällä ja kuuntelee passiivisesti tai napin painalluksella sotiaan puhetta ja raportointia. Täten kukin sotilas kykenee monimuotoisesti, vapaasti ja suurella tarkkuudella kuvailemaan tilannetta ja radio lähettää tiedon eteenpäin. Tämä puheen ja tiedon hälinä kasataan ja jalostetaan tekoälymallin avulla tukiasemalla. 
-
-Nyt voidaan saada realiaikainen ja kattava tilannekuva koko taistelutilanteesta. Tämä aijemmin olisi mahdotonta, sillä tiedon hälinän prosenssointi manuaalisesti vaatisi yhtä monta kuuntelijaa ja analysoijaa kuin itse lähettävää sotilasta. Ja se tiedon rakennus yhtenäiseksi raportiksi olisi mahdotonta. 
-
-Toinen asia on se, että basessa oleva tekoälymalli kykenee muodostamaan siitä vaatimusten mukaisia raportteja: “OPORD/FRAGO and standard reports (EOINCREP, CASEVAC) with citations and confidence flags, then translates them between NATO, national, and machine-readable schemas so people and robots share”

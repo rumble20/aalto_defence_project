@@ -3,9 +3,11 @@
 ## Project Concept
 
 ### Problem Statement (Finnish)
+
 Nykyiselta sotakentältä ei saada informaatiota järkevästi: radion kautta puhuminen, kirjoittaminen vanhentuneilla laitteilla on vaivailloista ja usein jää toteuttamatta. Tiedon lähetys eteenpäin tulee olla muodollista sekä sitä on vaivalloista.
 
 ### Solution (Finnish)
+
 Jokaisella sotilaalla tai ryhmänjohtajalla tai muutaman sotilaan johtajalla tulee olemaan älykäs radio joka on aina päällä ja kuuntelee passiivisesti tai napin painalluksella sotiaan puhetta ja raportointia. Täten kukin sotilas kykenee monimuotoisesti, vapaasti ja suurella tarkkuudella kuvailemaan tilannetta ja radio lähettää tiedon eteenpäin. Tämä puheen ja tiedon hälinä kasataan ja jalostetaan tekoälymallin avulla tukiasemalla.
 
 Nyt voidaan saada realiaikainen ja kattava tilannekuva koko taistelutilanteesta. Tämä aijemmin olisi mahdotonta, sillä tiedon hälinän prosenssointi manuaalisesti vaatisi yhtä monta kuuntelijaa ja analysoijaa kuin itse lähettävää sotilasta. Ja se tiedon rakennus yhtenäiseksi raportiksi olisi mahdotonta.
@@ -13,9 +15,11 @@ Nyt voidaan saada realiaikainen ja kattava tilannekuva koko taistelutilanteesta.
 Toinen asia on se, että basessa oleva tekoälymalli kykenee muodostamaan siitä vaatimusten mukaisia raportteja: "OPORD/FRAGO and standard reports (EOINCREP, CASEVAC) with citations and confidence flags, then translates them between NATO, national, and machine-readable schemas so people and robots share"
 
 ### Problem Statement (English)
+
 Current battlefield information gathering is inefficient: radio communication and writing on outdated devices is cumbersome and often not executed. Information transmission must be formal, making it laborious.
 
 ### Solution (English)
+
 Each soldier, squad leader, or small team leader will have a smart radio that is always on and passively listens or activates with a button press to capture soldier speech and reporting. This allows each soldier to describe the situation in a multifaceted, free, and highly accurate manner, with the radio transmitting the information forward. This speech and information noise is collected and refined by an AI model at the base station.
 
 This enables real-time and comprehensive situational awareness of the entire battle situation. Previously impossible, as manually processing this information noise would require as many listeners and analysts as there are reporting soldiers, and building coherent reports from this data would be impossible.
@@ -27,11 +31,13 @@ Additionally, the AI model at the base can generate compliant reports: "OPORD/FR
 ## AI Prompts Used in the System
 
 ### 1. AI Chat Analysis Prompt
+
 **Location**: `backend/backend.py` (~line 850)
 
 **Purpose**: Analyzes battlefield reports and answers tactical questions
 
 **Template**:
+
 ```
 You are a military intelligence analyst AI. Analyze these battlefield reports and answer the user's question.
 
@@ -45,6 +51,7 @@ Provide a direct, clear answer using military terminology. Be concise and action
 ```
 
 **Features**:
+
 - Processes up to 50 reports
 - Extracts structured data from reports
 - Provides tactical insights
@@ -53,11 +60,13 @@ Provide a direct, clear answer using military terminology. Be concise and action
 ---
 
 ### 2. FRAGO (Fragmentary Order) Suggestion Prompt
+
 **Location**: `backend/backend.py` (~line 945)
 
 **Purpose**: Generates tactical order suggestions based on battlefield reports
 
 **Template**:
+
 ```
 You are a military AI assistant. Based on the following reports from {unit_name}, suggest appropriate fields for a Fragmentary Order (FRAGO).
 
@@ -77,6 +86,7 @@ Provide ONLY the JSON object, no additional text.
 ```
 
 **Guidelines**:
+
 - 5-paragraph order structure
 - Based on current tactical situation
 - Clear, actionable mission statements
@@ -84,11 +94,13 @@ Provide ONLY the JSON object, no additional text.
 ---
 
 ### 3. CASEVAC (Casualty Evacuation) Suggestion Prompt
+
 **Location**: `backend/backend.py` (~line 1180)
 
 **Purpose**: Generates CASEVAC report fields from casualty information
 
 **Template**:
+
 ```
 You are a military medical AI assistant. Based on casualty reports from {unit_name}, suggest appropriate CASEVAC request fields.
 
@@ -117,6 +129,7 @@ Guidelines:
 ```
 
 **9-Line CASEVAC Format**:
+
 1. Location of pickup site
 2. Radio frequency, call sign
 3. Number of patients by precedence
@@ -130,11 +143,13 @@ Guidelines:
 ---
 
 ### 4. EOINCREP (Enemy Observation) Suggestion Prompt
+
 **Location**: `backend/backend.py` (~line 1505)
 
 **Purpose**: Generates enemy observation reports from intelligence
 
 **Template**:
+
 ```
 You are a military intelligence AI assistant. Based on enemy observation reports from {unit_name}, suggest appropriate EOINCREP fields.
 
@@ -160,6 +175,7 @@ Guidelines:
 ```
 
 **Threat Levels**:
+
 - **CRITICAL**: Large forces, immediate support required
 - **HIGH**: Significant forces, engage with support
 - **MEDIUM**: Small patrols, prepare to engage
@@ -170,16 +186,19 @@ Guidelines:
 ## Technical Implementation
 
 ### AI Model
+
 - **Model**: Google Gemini 2.5 Pro
 - **API**: Google Generative AI
 - **Safety Settings**: Disabled for military content
 
 ### Output Format
+
 - **Schema Enforcement**: Pydantic (implied through JSON validation)
 - **Format**: Structured JSON
 - **Fallback**: Default values if AI fails
 
 ### Processing Pipeline
+
 1. Collect relevant reports from database
 2. Format reports with context
 3. Generate AI prompt with guidelines
@@ -192,9 +211,11 @@ Guidelines:
 ## Hackathon Context
 
 ### Challenge: What The Warfighter?
+
 **Path 1**: AI for Front and Rear
 
 **Requirements**:
+
 - Turn raw, unstructured battlefield inputs into clear decisions
 - Ingest chat logs, sensor snippets, and doctrine
 - Draft 5-paragraph OPORD/FRAGO and standard reports (EOINCREP, CASEVAC)
@@ -207,6 +228,7 @@ Guidelines:
 - LLM + RAG pipelines
 
 **Tech Stack**:
+
 - **Edge Device**: Raspberry Pi with VOSK for speech-to-text
 - **Backend**: FastAPI + Python
 - **AI**: Google Gemini API (swappable with local Llama)
@@ -216,6 +238,7 @@ Guidelines:
 - **Validation**: Pydantic
 
 **Winning Criteria**:
+
 - Uniqueness: 70%
 - Feasibility: 30%
 
