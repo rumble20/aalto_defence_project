@@ -133,7 +133,7 @@ export function NodeReports({
       </div>
 
       {/* Reports List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
             Loading reports...
@@ -152,28 +152,28 @@ export function NodeReports({
                 key={report.report_id}
                 onClick={() => onReportClick?.(report)}
                 className={cn(
-                  "p-3 rounded-lg border cursor-pointer transition-all duration-200",
-                  "hover:scale-[1.02] neumorphic-inset",
+                  "p-2 rounded-lg border cursor-pointer transition-all duration-200",
+                  "hover:scale-[1.01] neumorphic-inset",
                   colorClass
                 )}
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-1">
-                    <Icon className="h-4 w-4" />
+                  <div className="flex-shrink-0 mt-0.5">
+                    <Icon className="h-3 w-3" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold font-mono">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] font-bold font-mono">
                         {report.report_type}
                       </span>
-                      <span className="text-xs text-muted-foreground font-mono">
+                      <span className="text-[10px] text-muted-foreground font-mono">
                         {new Date(report.timestamp).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground line-clamp-2 mb-1">
+                    <p className="text-xs text-foreground line-clamp-2 mb-0.5 leading-tight">
                       {getReportSummary(report)}
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
                       <span>{report.soldier_name || "Unknown"}</span>
                       {report.unit_name && (
                         <>
@@ -194,8 +194,8 @@ export function NodeReports({
 
       {/* Summary Stats */}
       {reports.length > 0 && (
-        <div className="p-4 border-t border-border/50">
-          <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="p-2 border-t border-border/50">
+          <div className="grid grid-cols-3 gap-1 text-center">
             {Array.from(new Set(reports.map((r) => r.report_type)))
               .slice(0, 3)
               .map((type) => {
@@ -203,11 +203,11 @@ export function NodeReports({
                   (r) => r.report_type === type
                 ).length;
                 return (
-                  <div key={type} className="neumorphic-inset rounded-lg p-2">
-                    <div className="text-lg font-bold font-mono text-foreground">
+                  <div key={type} className="neumorphic-inset rounded-lg p-1">
+                    <div className="text-sm font-bold font-mono text-foreground">
                       {count}
                     </div>
-                    <div className="text-xs text-muted-foreground font-mono">
+                    <div className="text-[10px] text-muted-foreground font-mono">
                       {type}
                     </div>
                   </div>
