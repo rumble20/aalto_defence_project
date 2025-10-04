@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronRight, ChevronDown, Users, User, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { getApiUrl } from "@/lib/api-config";
 
 interface Soldier {
   soldier_id: string;
@@ -55,7 +56,7 @@ export function HierarchyTree({
 
   const fetchHierarchy = async () => {
     try {
-      const response = await fetch("http://localhost:8000/hierarchy");
+      const response = await fetch(getApiUrl("/hierarchy"));
       const data = await response.json();
 
       // Build proper hierarchy from flat list

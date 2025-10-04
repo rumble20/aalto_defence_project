@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { AlertTriangle, Eye, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { API_BASE_URL } from "@/lib/api-config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,8 +41,8 @@ export function AutoSuggestions({
     const fetchSuggestions = async () => {
       try {
         const url = unitId
-          ? `http://localhost:8000/api/suggestions?status=pending&unit_id=${unitId}`
-          : "http://localhost:8000/api/suggestions?status=pending";
+          ? `${API_BASE_URL}/api/suggestions?status=pending&unit_id=${unitId}`
+          : `${API_BASE_URL}/api/suggestions?status=pending`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -64,7 +65,7 @@ export function AutoSuggestions({
     // Trigger reanalysis on first mount (when page loads)
     const reanalyzeReports = async () => {
       try {
-        await fetch("http://localhost:8000/api/suggestions/reanalyze", {
+        await fetch(`${API_BASE_URL}/api/suggestions/reanalyze`, {
           method: "POST",
         });
         console.log("✅ Reports reanalyzed for suggestions");
@@ -124,7 +125,7 @@ export function AutoSuggestions({
 
   const dismissSuggestion = async (suggestionId: string) => {
     try {
-      await fetch(`http://localhost:8000/api/suggestions/${suggestionId}`, {
+      await fetch(`${API_BASE_URL}/api/suggestions/${suggestionId}`, {
         method: "DELETE",
       });
 
@@ -140,7 +141,7 @@ export function AutoSuggestions({
     try {
       // Mark as draft_created
       await fetch(
-        `http://localhost:8000/api/suggestions/${suggestion.suggestion_id}/create-draft`,
+        `${API_BASE_URL}/api/suggestions/${suggestion.suggestion_id}/create-draft`,
         {
           method: "POST",
         }

@@ -13,6 +13,7 @@ import { FRAGOBuilder } from "./components/frago-builder";
 import { CASEVACBuilder } from "./components/casevac-builder";
 import { EOINCREPBuilder } from "./components/eoincrep-builder";
 import { AutoSuggestions } from "@/components/auto-suggestions";
+import { API_BASE_URL, getApiUrl } from "@/lib/api-config";
 import {
   Shield,
   Users,
@@ -83,8 +84,6 @@ export default function Home() {
   const [nodeReports, setNodeReports] = useState<Report[]>([]);
   const [loadingNodeReports, setLoadingNodeReports] = useState(false);
 
-  const API_BASE = "http://localhost:8000";
-
   const unitLevels = [
     { id: "brigade", name: "Brigade", icon: Layers },
     { id: "battalion", name: "Battalion", icon: Shield },
@@ -105,7 +104,7 @@ export default function Home() {
 
   const fetchSoldiers = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/soldiers`);
+      const response = await axios.get(`${API_BASE_URL}/soldiers`);
       setSoldiers(response.data.soldiers);
       if (response.data.soldiers.length > 0) {
         setSelectedSoldier(response.data.soldiers[0].soldier_id);
@@ -120,8 +119,8 @@ export default function Home() {
   const fetchSoldierData = async (soldierId: string) => {
     try {
       const [rawResponse, reportsResponse] = await Promise.all([
-        axios.get(`${API_BASE}/soldiers/${soldierId}/raw_inputs`),
-        axios.get(`${API_BASE}/soldiers/${soldierId}/reports`),
+        axios.get(`${API_BASE_URL}/soldiers/${soldierId}/raw_inputs`),
+        axios.get(`${API_BASE_URL}/soldiers/${soldierId}/reports`),
       ]);
 
       setRawInputs(rawResponse.data.raw_inputs);
@@ -168,7 +167,7 @@ export default function Home() {
       if (node.type === "soldier") {
         // Fetch reports for single soldier
         const response = await axios.get(
-          `${API_BASE}/soldiers/${node.soldier_id}/reports`
+          `${API_BASE_URL}/soldiers/${node.soldier_id}/reports`
         );
         allReports = response.data.reports || [];
       } else if (node.type === "unit") {
@@ -176,7 +175,7 @@ export default function Home() {
         const soldierIds = collectSoldierIds(node);
 
         // Fetch all reports and filter by soldier IDs
-        const response = await axios.get(`${API_BASE}/reports?limit=500`);
+        const response = await axios.get(`${API_BASE_URL}/reports?limit=500`);
         const allAvailableReports = response.data.reports || [];
 
         // Filter reports that belong to soldiers in this unit hierarchy
@@ -204,7 +203,7 @@ export default function Home() {
   const selectUnitById = async (unitId: string) => {
     try {
       // Fetch hierarchy to find the node
-      const response = await axios.get(`${API_BASE}/hierarchy`);
+      const response = await axios.get(`${API_BASE_URL}/hierarchy`);
       const hierarchy = response.data.hierarchy || [];
 
       // Recursively search for the unit node

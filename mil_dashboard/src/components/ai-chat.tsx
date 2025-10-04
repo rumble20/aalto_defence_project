@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Bot, User, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getApiUrl } from "@/lib/api-config";
 import type { TreeNode } from "./hierarchy-tree";
 
 interface Message {
@@ -82,7 +83,7 @@ export function AIChat({ selectedNode, reports }: AIChatProps) {
       });
 
       // Call AI API (you'll need to implement this endpoint)
-      const response = await fetch("http://localhost:8000/ai/chat", {
+      const response = await fetch(getApiUrl("/ai/chat"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -5,8 +5,12 @@ pydantic==2.11.10
 pydantic-core==2.33.2
 starlette==0.48.0
 
+# Production server
+gunicorn==21.2.0
+
 # Database and data handling
 SQLAlchemy==2.0.43
+psycopg2-binary==2.9.9  # PostgreSQL adapter for production
 
 # MQTT client for real-time communication
 paho-mqtt==2.1.0

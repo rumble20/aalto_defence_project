@@ -10,13 +10,14 @@ from typing import List, Dict, Any, Optional
 import threading
 import logging
 import google.generativeai as genai
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configure Gemini API
-GEMINI_API_KEY = "AIzaSyB2LVUXt2a9nMCpJwGJWen4_EECudv9u_c"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyB2LVUXt2a9nMCpJwGJWen4_EECudv9u_c")
 genai.configure(api_key=GEMINI_API_KEY)
 # Use gemini-2.5-pro - most capable model with advanced reasoning
 gemini_model = genai.GenerativeModel('gemini-2.5-pro')
@@ -32,16 +33,74 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database path - use absolute path based on this file's location
-import os
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "military_hierarchy.db")
+# Database configuration - auto-detect environment
+DATABASE_URL = os.getenv("DATABASE_URL")  # Render/production provides this
+USE_POSTGRES = DATABASE_URL is not None
+
+if USE_POSTGRES:
+    # Production: Use PostgreSQL
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    logger.info("Using PostgreSQL database")
+else:
+    # Local development: Use SQLite
+    DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "military_hierarchy.db")
+    logger.info(f"Using SQLite database at {DB_PATH}")
 
 # Global MQTT client
 mqtt_client = None
 
 def get_db_connection():
-    """Get a database connection."""
-    return sqlite3.connect(DB_PATH)
+    """Get a database connection (PostgreSQL or SQLite based on environment)."""
+    if USE_POSTGRES:
+        # PostgreSQL connection
+        return psycopg2.connect(DATABASE_URL)
+    else:
+        # SQLite connection
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row  # Return rows as dictionaries
+        return conn
+
+def execute_query(query: str, params: tuple = (), fetch_one: bool = False, fetch_all: bool = False):
+    """
+    Execute a database query that works with both PostgreSQL and SQLite.
+    Handles parameter placeholder differences (? for SQLite, %s for PostgreSQL).
+    """
+    conn = get_db_connection()
+    try:
+        # Convert SQLite placeholders (?) to PostgreSQL placeholders (%s) if needed
+        if USE_POSTGRES:
+            query = query.replace("?", "%s")
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+        else:
+            cursor = conn.cursor()
+        
+        cursor.execute(query, params)
+        
+        if fetch_one:
+            result = cursor.fetchone()
+            if USE_POSTGRES and result:
+                result = dict(result)
+            elif not USE_POSTGRES and result:
+                result = dict(result)
+            conn.close()
+            return result
+        elif fetch_all:
+            results = cursor.fetchall()
+            if USE_POSTGRES:
+                results = [dict(row) for row in results]
+            else:
+                results = [dict(row) for row in results]
+            conn.close()
+            return results
+        else:
+            # For INSERT/UPDATE/DELETE
+            conn.commit()
+            conn.close()
+            return None
+    except Exception as e:
+        conn.close()
+        raise e
 
 def generate_report_description(report_type: str, structured_json: Dict[str, Any]) -> str:
     """

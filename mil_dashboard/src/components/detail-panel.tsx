@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api-config';
 import { 
   Users, 
   Shield, 
@@ -91,8 +92,8 @@ export function DetailPanel({ selectedNode }: DetailPanelProps) {
       if ('soldier_id' in selectedNode) {
         // Fetch soldier-specific data
         const [inputsResponse, reportsResponse] = await Promise.all([
-          fetch(`http://localhost:8000/soldiers/${selectedNode.soldier_id}/raw_inputs`),
-          fetch(`http://localhost:8000/soldiers/${selectedNode.soldier_id}/reports`)
+          fetch(`${API_BASE_URL}/soldiers/${selectedNode.soldier_id}/raw_inputs`),
+          fetch(`${API_BASE_URL}/soldiers/${selectedNode.soldier_id}/reports`)
         ]);
 
         const inputsData = await inputsResponse.json();
