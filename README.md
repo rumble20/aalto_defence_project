@@ -13,14 +13,11 @@ A hackathon-ready system for military communication. Starts with speech-to-text 
 
 ## System Architecture
 
-Soldier Device (Raspberry Pi) → MQTT → FastAPI Backend → SQLite Database
+Soldier Device (Raspberry Pi) → Speech_to_text -> convert into formatted JSON -> MQTT → FastAPI Backend → SQLite Database -> 
 ↓
 Backend Services & AI Processing
 ↓
 Next.js Frontend
-
-markdown
-Copia codice
 
 ## Backend Workflow
 
