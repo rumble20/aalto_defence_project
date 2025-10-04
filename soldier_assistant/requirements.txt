@@ -1,0 +1,9 @@
+paho-mqtt
+pvporcupine
+vosk
+pyaudio
+python-dotenv
+sounddevice
+noisereduce
+python-dotenv
+adapt-parser
