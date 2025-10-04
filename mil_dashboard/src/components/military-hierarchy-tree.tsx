@@ -130,15 +130,15 @@ export function MilitaryHierarchyTree({ onNodeSelect, selectedNodeId }: Military
   const getLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
       case 'battalion':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'bg-military-blue/20 text-foreground border-military-blue/30';
       case 'company':
-        return 'text-green-600 bg-green-50 border-green-200';
+        return 'bg-military-olive/20 text-foreground border-military-olive/30';
       case 'platoon':
-        return 'text-orange-600 bg-orange-50 border-orange-200';
+        return 'bg-military-amber/20 text-foreground border-military-amber/30';
       case 'squad':
-        return 'text-purple-600 bg-purple-50 border-purple-200';
+        return 'bg-military-red/20 text-foreground border-military-red/30';
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -153,16 +153,15 @@ export function MilitaryHierarchyTree({ onNodeSelect, selectedNodeId }: Military
         {/* Unit Node */}
         <div
           className={`
-            flex items-center p-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50
-            ${isSelected ? 'bg-blue-100 border-l-4 border-blue-500' : ''}
-            ${depth > 0 ? 'ml-4' : ''}
+            flex items-center p-3 rounded-lg cursor-pointer transition-all duration-200
+            ${isSelected ? 'neumorphic-inset border-l-4 border-foreground' : 'hover:bg-muted/50'}
           `}
           style={{ marginLeft: `${depth * 16}px` }}
           onClick={() => onNodeSelect(node)}
         >
           {/* Expand/Collapse Button */}
           <button
-            className="mr-2 p-1 hover:bg-gray-200 rounded"
+            className="mr-2 p-1 hover:bg-muted/50 rounded transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               if (hasChildren || hasSoldiers) {
@@ -172,9 +171,9 @@ export function MilitaryHierarchyTree({ onNodeSelect, selectedNodeId }: Military
           >
             {(hasChildren || hasSoldiers) ? (
               isExpanded ? (
-                <ChevronDown className="h-3 w-3 text-gray-500" />
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-3 w-3 text-gray-500" />
+                <ChevronRight className="h-3 w-3 text-muted-foreground" />
               )
             ) : (
               <div className="w-3 h-3" />
@@ -189,15 +188,15 @@ export function MilitaryHierarchyTree({ onNodeSelect, selectedNodeId }: Military
           {/* Unit Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm truncate">{node.unit.name}</span>
+              <span className="font-medium text-sm truncate text-foreground">{node.unit.name}</span>
               <span className={`
-                px-2 py-0.5 text-xs rounded-full border font-medium
+                px-2 py-0.5 text-xs rounded-full border font-medium font-mono
                 ${getLevelColor(node.unit.level)}
               `}>
                 {node.unit.level}
               </span>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted-foreground font-mono">
               {node.children.length} subunits • {node.soldiers.length} personnel
             </div>
           </div>
@@ -213,20 +212,20 @@ export function MilitaryHierarchyTree({ onNodeSelect, selectedNodeId }: Military
                   <div
                     key={soldier.soldier_id}
                     className={`
-                      flex items-center p-2 ml-4 rounded cursor-pointer transition-all duration-200 hover:bg-gray-50
-                      ${selectedNodeId === soldier.soldier_id ? 'bg-green-100 border-l-4 border-green-500' : ''}
+                      flex items-center p-3 ml-4 rounded cursor-pointer transition-all duration-200
+                      ${selectedNodeId === soldier.soldier_id ? 'neumorphic-inset border-l-4 border-foreground' : 'hover:bg-muted/50'}
                     `}
                     onClick={() => onNodeSelect(soldier)}
                   >
-                    <Radio className="h-3 w-3 text-gray-400 mr-2" />
+                    <Radio className="h-3 w-3 text-muted-foreground mr-2" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">{soldier.name}</span>
-                        <span className="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                        <span className="font-medium text-sm truncate text-foreground">{soldier.name}</span>
+                        <span className="px-1.5 py-0.5 text-xs bg-muted text-muted-foreground rounded font-mono">
                           {soldier.rank}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground font-mono">
                         {soldier.device_id} • {soldier.status}
                       </div>
                     </div>
@@ -254,17 +253,17 @@ export function MilitaryHierarchyTree({ onNodeSelect, selectedNodeId }: Military
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-white">
-      <div className="p-4 border-b bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-800">Military Hierarchy</h2>
-        <p className="text-sm text-gray-600">Click to view details and reports</p>
+    <div className="h-full overflow-y-auto bg-card">
+      <div className="p-6 border-b border-border bg-card/50">
+        <h2 className="text-xl font-bold font-mono text-foreground">MILITARY HIERARCHY</h2>
+        <p className="text-sm text-muted-foreground mt-1">Click to view details and reports</p>
       </div>
       
-      <div className="p-2">
+      <div className="p-4">
         {hierarchy.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Users className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-            <p>No hierarchy data available</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50" />
+            <p className="font-mono">No hierarchy data available</p>
           </div>
         ) : (
           <div className="space-y-1">

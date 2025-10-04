@@ -166,16 +166,16 @@ export function DetailPanel({ selectedNode }: DetailPanelProps) {
     switch (type) {
       case 'CASEVAC':
       case 'MEDEVAC':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-military-red/20 text-foreground border-military-red/30';
       case 'EOINCREP':
       case 'SPOTREP':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-military-amber/20 text-foreground border-military-amber/30';
       case 'INTREP':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-military-blue/20 text-foreground border-military-blue/30';
       case 'SITREP':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-military-olive/20 text-foreground border-military-olive/30';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -185,10 +185,10 @@ export function DetailPanel({ selectedNode }: DetailPanelProps) {
 
   if (!selectedNode) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
-        <div className="text-center text-gray-500">
-          <Users className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-          <p>Select a unit or soldier to view details</p>
+      <div className="h-full flex items-center justify-center bg-card">
+        <div className="text-center text-muted-foreground">
+          <Users className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50" />
+          <p className="font-mono">Select a unit or soldier to view details</p>
         </div>
       </div>
     );
@@ -197,16 +197,16 @@ export function DetailPanel({ selectedNode }: DetailPanelProps) {
   const isSoldier = 'soldier_id' in selectedNode;
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-card">
       {/* Header */}
-      <div className="p-4 border-b bg-gray-50">
+      <div className="p-6 border-b border-border bg-card/50">
         <div className="flex items-center gap-3">
           {getNodeIcon(selectedNode)}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">
+            <h2 className="text-xl font-bold font-mono text-foreground">
               {selectedNode.name}
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground font-mono">
               {isSoldier ? selectedNode.rank : selectedNode.level}
             </p>
           </div>
@@ -214,36 +214,36 @@ export function DetailPanel({ selectedNode }: DetailPanelProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b">
+      <div className="flex border-b border-border">
         <button
-          className={`px-4 py-2 text-sm font-medium ${
+          className={`px-4 py-3 text-sm font-medium font-mono transition-colors ${
             activeTab === 'overview'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-foreground border-b-2 border-foreground bg-muted/50'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
           }`}
           onClick={() => setActiveTab('overview')}
         >
-          Overview
+          OVERVIEW
         </button>
         <button
-          className={`px-4 py-2 text-sm font-medium ${
+          className={`px-4 py-3 text-sm font-medium font-mono transition-colors ${
             activeTab === 'inputs'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-foreground border-b-2 border-foreground bg-muted/50'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
           }`}
           onClick={() => setActiveTab('inputs')}
         >
-          Raw Inputs ({rawInputs.length})
+          RAW INPUTS ({rawInputs.length})
         </button>
         <button
-          className={`px-4 py-2 text-sm font-medium ${
+          className={`px-4 py-3 text-sm font-medium font-mono transition-colors ${
             activeTab === 'reports'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-foreground border-b-2 border-foreground bg-muted/50'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
           }`}
           onClick={() => setActiveTab('reports')}
         >
-          Reports ({reports.length})
+          REPORTS ({reports.length})
         </button>
       </div>
 
@@ -258,74 +258,74 @@ export function DetailPanel({ selectedNode }: DetailPanelProps) {
             {activeTab === 'overview' && (
               <div className="space-y-4">
                 {/* Basic Info */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-medium text-gray-800 mb-3">Basic Information</h3>
-                  <div className="space-y-2 text-sm">
+                <div className="neumorphic-inset rounded-lg p-6 border border-border/30">
+                  <h3 className="font-medium text-foreground mb-4 font-mono">BASIC INFORMATION</h3>
+                  <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">ID:</span>
-                      <span className="font-mono">{isSoldier ? selectedNode.soldier_id : selectedNode.unit_id}</span>
+                      <span className="text-muted-foreground font-mono">ID:</span>
+                      <span className="font-mono text-foreground">{isSoldier ? selectedNode.soldier_id : selectedNode.unit_id}</span>
                     </div>
                     {isSoldier && (
                       <>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Device:</span>
-                          <span className="font-mono">{selectedNode.device_id}</span>
+                          <span className="text-muted-foreground font-mono">Device:</span>
+                          <span className="font-mono text-foreground">{selectedNode.device_id}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Status:</span>
+                          <span className="text-muted-foreground font-mono">Status:</span>
                           <div className="flex items-center gap-1">
                             {getStatusIcon(selectedNode.status)}
-                            <span className="capitalize">{selectedNode.status}</span>
+                            <span className="capitalize text-foreground font-mono">{selectedNode.status}</span>
                           </div>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Last Seen:</span>
-                          <span>{formatTimestamp(selectedNode.last_seen)}</span>
+                          <span className="text-muted-foreground font-mono">Last Seen:</span>
+                          <span className="font-mono text-foreground">{formatTimestamp(selectedNode.last_seen)}</span>
                         </div>
                       </>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Created:</span>
-                      <span>{formatTimestamp(selectedNode.created_at)}</span>
+                      <span className="text-muted-foreground font-mono">Created:</span>
+                      <span className="font-mono text-foreground">{formatTimestamp(selectedNode.created_at)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Statistics */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="neumorphic-inset rounded-lg p-4 border border-border/30">
                     <div className="flex items-center gap-2 mb-1">
-                      <FileText className="h-4 w-4 text-blue-500" />
-                      <span className="text-sm font-medium text-blue-700">Reports</span>
+                      <FileText className="h-4 w-4 text-foreground" />
+                      <span className="text-sm font-medium text-foreground font-mono">REPORTS</span>
                     </div>
-                    <div className="text-2xl font-bold text-blue-800">{reports.length}</div>
+                    <div className="text-2xl font-bold text-foreground font-mono">{reports.length}</div>
                   </div>
                   
                   {isSoldier && (
-                    <div className="bg-green-50 rounded-lg p-4">
+                    <div className="neumorphic-inset rounded-lg p-4 border border-border/30">
                       <div className="flex items-center gap-2 mb-1">
-                        <Radio className="h-4 w-4 text-green-500" />
-                        <span className="text-sm font-medium text-green-700">Inputs</span>
+                        <Radio className="h-4 w-4 text-foreground" />
+                        <span className="text-sm font-medium text-foreground font-mono">INPUTS</span>
                       </div>
-                      <div className="text-2xl font-bold text-green-800">{rawInputs.length}</div>
+                      <div className="text-2xl font-bold text-foreground font-mono">{rawInputs.length}</div>
                     </div>
                   )}
                 </div>
 
                 {/* Recent Activity */}
                 {reports.length > 0 && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-800 mb-3">Recent Activity</h3>
-                    <div className="space-y-2">
+                  <div className="neumorphic-inset rounded-lg p-6 border border-border/30">
+                    <h3 className="font-medium text-foreground mb-4 font-mono">RECENT ACTIVITY</h3>
+                    <div className="space-y-3">
                       {reports.slice(0, 3).map((report) => (
-                        <div key={report.report_id} className="flex items-center gap-3 p-2 bg-white rounded">
-                          <span className={`px-2 py-1 text-xs rounded border ${getReportTypeColor(report.report_type)}`}>
+                        <div key={report.report_id} className="flex items-center gap-3 p-3 bg-card rounded border border-border/20">
+                          <span className={`px-2 py-1 text-xs rounded border font-mono ${getReportTypeColor(report.report_type)}`}>
                             {report.report_type}
                           </span>
-                          <span className="text-sm text-gray-600 flex-1 truncate">
+                          <span className="text-sm text-foreground flex-1 truncate font-mono">
                             {report.soldier_name || 'Unknown'}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-muted-foreground font-mono">
                             {formatTimestamp(report.timestamp)}
                           </span>
                         </div>
