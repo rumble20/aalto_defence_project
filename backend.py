@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 # Configure Gemini API
 GEMINI_API_KEY = "AIzaSyB2LVUXt2a9nMCpJwGJWen4_EECudv9u_c"
 genai.configure(api_key=GEMINI_API_KEY)
-# Use gemini-2.0-flash-exp - fast and supports latest features
-gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+# Use gemini-2.5-pro - most capable model with advanced reasoning
+gemini_model = genai.GenerativeModel('gemini-2.5-pro')
 
 app = FastAPI(title="Military Hierarchy Backend", version="1.0.0")
 
