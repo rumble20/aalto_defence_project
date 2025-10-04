@@ -1,0 +1,14 @@
+{
+  "action": "move",
+  "target_units": [
+    "Alpha",
+    "Bravo",
+    "High"
+  ],
+  "coordinates": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "timeframe": "immediate",
+  "priority": "HIGH"
+}

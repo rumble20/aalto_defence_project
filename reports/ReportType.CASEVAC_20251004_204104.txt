@@ -1,0 +1,6 @@
+CASEVAC REPORT
+Evacuation Action: move
+Units to Evacuate: Alpha, Bravo, High
+Evacuation Coordinates: X=0.0, Y=0.0
+Required Timeframe: immediate
+Evacuation Priority: Priority.HIGH
