@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Access Test for Friend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .instructions {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Network Access Test</h1>
+        <p><strong>Your friend's IP:</strong> 10.3.35.27</p>
+        
+        <div class="instructions">
+            <h3>📋 Instructions for Your Friend:</h3>
+            <ol>
+                <li>Make sure you're connected to the SAME WiFi network</li>
+                <li>Click the test buttons below</li>
+                <li>Share the results with the host</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Test 1: Basic Connectivity</h3>
+            <p>This tests if you can reach the host computer.</p>
+            <button onclick="testConnectivity()">Test Connectivity</button>
+            <div id="connectivity-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Test 2: Backend API</h3>
+            <p>This tests the main API service.</p>
+            <button onclick="testBackendAPI()">Test Backend API</button>
+            <div id="backend-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test 3: Main Dashboard</h3>
+            <p>This tests the main dashboard interface.</p>
+            <button onclick="testMainDashboard()">Test Main Dashboard</button>
+            <div id="dashboard-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test 4: Reports UI</h3>
+            <p>This tests the reports interface.</p>
+            <button onclick="testReportsUI()">Test Reports UI</button>
+            <div id="reports-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📚 Test 5: API Documentation</h3>
+            <p>This tests the interactive API documentation.</p>
+            <button onclick="testAPIDocs()">Test API Docs</button>
+            <div id="docs-result" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Test All Services</h3>
+            <p>Run all tests at once.</p>
+            <button onclick="testAllServices()">Test All Services</button>
+            <div id="all-results" class="result"></div>
+        </div>
+
+        <div id="summary" class="result"></div>
+    </div>
+
+    <script>
+        const HOST_IP = "10.3.35.27";
+        
+        function showResult(elementId, message, isError = false, isWarning = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `result ${isError ? 'error' : isWarning ? 'warning' : 'success'}`;
+        }
+
+        async function testConnectivity() {
+            showResult('connectivity-result', 'Testing connectivity...', false);
+            
+            try {
+                const response = await fetch(`http://${HOST_IP}:8000/`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    timeout: 5000
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('connectivity-result', 
+                        `✅ SUCCESS: Connected to host computer!<br>
+                         Status: ${data.status}<br>
+                         MQTT: ${data.mqtt_connected ? 'Connected' : 'Disconnected'}`, false);
+                } else {
+                    showResult('connectivity-result', 
+                        `❌ ERROR: HTTP ${response.status} - ${response.statusText}`, true);
+                }
+            } catch (error) {
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    showResult('connectivity-result', 
+                        `❌ CONNECTION FAILED: Cannot reach host computer<br>
+                         Possible causes:<br>
+                         • Not on the same WiFi network<br>
+                         • Host computer firewall is blocking connections<br>
+                         • Host computer is not running the services`, true);
+                } else {
+                    showResult('connectivity-result', 
+                        `❌ ERROR: ${error.message}`, true);
+                }
+            }
+        }
+
+        async function testBackendAPI() {
+            showResult('backend-result', 'Testing Backend API...', false);
+            
+            try {
+                const response = await fetch(`http://${HOST_IP}:8000/soldiers`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('backend-result', 
+                        `✅ SUCCESS: Backend API is working!<br>
+                         Found ${data.soldiers ? data.soldiers.length : 0} soldiers`, false);
+                } else {
+                    showResult('backend-result', 
+                        `❌ ERROR: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showResult('backend-result', 
+                    `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        async function testMainDashboard() {
+            showResult('dashboard-result', 'Testing Main Dashboard...', false);
+            
+            try {
+                const response = await fetch(`http://${HOST_IP}:3000/`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    showResult('dashboard-result', 
+                        `✅ SUCCESS: Main Dashboard is accessible!<br>
+                         You can now use: http://${HOST_IP}:3000`, false);
+                } else {
+                    showResult('dashboard-result', 
+                        `❌ ERROR: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showResult('dashboard-result', 
+                    `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        async function testReportsUI() {
+            showResult('reports-result', 'Testing Reports UI...', false);
+            
+            try {
+                const response = await fetch(`http://${HOST_IP}:3001/`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    showResult('reports-result', 
+                        `✅ SUCCESS: Reports UI is accessible!<br>
+                         You can now use: http://${HOST_IP}:3001`, false);
+                } else {
+                    showResult('reports-result', 
+                        `❌ ERROR: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showResult('reports-result', 
+                    `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        async function testAPIDocs() {
+            showResult('docs-result', 'Testing API Documentation...', false);
+            
+            try {
+                const response = await fetch(`http://${HOST_IP}:8000/docs`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    showResult('docs-result', 
+                        `✅ SUCCESS: API Documentation is accessible!<br>
+                         You can now use: http://${HOST_IP}:8000/docs`, false);
+                } else {
+                    showResult('docs-result', 
+                        `❌ ERROR: HTTP ${response.status}`, true);
+                }
+            } catch (error) {
+                showResult('docs-result', 
+                    `❌ ERROR: ${error.message}`, true);
+            }
+        }
+
+        async function testAllServices() {
+            showResult('all-results', 'Running all tests...', false);
+            
+            const tests = [
+                { name: 'Connectivity', func: testConnectivity },
+                { name: 'Backend API', func: testBackendAPI },
+                { name: 'Main Dashboard', func: testMainDashboard },
+                { name: 'Reports UI', func: testReportsUI },
+                { name: 'API Docs', func: testAPIDocs }
+            ];
+            
+            let results = [];
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    results.push(`✅ ${test.name}: PASSED`);
+                } catch (error) {
+                    results.push(`❌ ${test.name}: FAILED - ${error.message}`);
+                }
+            }
+            
+            const summary = results.join('<br>');
+            const passedCount = results.filter(r => r.includes('✅')).length;
+            const totalCount = results.length;
+            
+            showResult('all-results', 
+                `📊 TEST SUMMARY: ${passedCount}/${totalCount} tests passed<br><br>${summary}`, 
+                passedCount === 0, 
+                passedCount > 0 && passedCount < totalCount);
+            
+            // Update main summary
+            if (passedCount === totalCount) {
+                showResult('summary', 
+                    `🎉 ALL TESTS PASSED!<br>
+                     You can access all services:<br>
+                     • Main Dashboard: http://${HOST_IP}:3000<br>
+                     • Reports UI: http://${HOST_IP}:3001<br>
+                     • API Documentation: http://${HOST_IP}:8000/docs`, false);
+            } else if (passedCount > 0) {
+                showResult('summary', 
+                    `⚠️ PARTIAL SUCCESS: ${passedCount}/${totalCount} services working<br>
+                     Some services may not be accessible. Check individual test results above.`, true);
+            } else {
+                showResult('summary', 
+                    `❌ ALL TESTS FAILED<br>
+                     You cannot access the services. Possible issues:<br>
+                     • Not on the same WiFi network<br>
+                     • Host computer firewall is blocking connections<br>
+                     • Host computer services are not running<br>
+                     • Network configuration issue`, true);
+            }
+        }
+    </script>
+</body>
+</html>
