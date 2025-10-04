@@ -1,168 +1,196 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Send, Radio, AlertTriangle, Shield, Activity, Zap, Eye } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Send,
+  Radio,
+  AlertTriangle,
+  Shield,
+  Activity,
+  Zap,
+  Eye,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StreamPanelProps {
-  streamId: string
-  onItemClick: (item: any) => void
+  streamId: string;
+  onItemClick: (item: any) => void;
 }
 
-type ReportType = "EOINCREP" | "CASEVAC" | "SITREP" | "MEDEVAC" | "SPOTREP" | "INTREP"
+type ReportType =
+  | "EOINCREP"
+  | "CASEVAC"
+  | "SITREP"
+  | "MEDEVAC"
+  | "SPOTREP"
+  | "INTREP";
 
 interface BattlefieldReport {
-  id: number
-  type: ReportType
-  text: string
-  timestamp: Date
-  unit: string
-  coordinates?: string
-  priority?: "ROUTINE" | "PRIORITY" | "IMMEDIATE" | "FLASH"
-  casualties?: number
+  id: number;
+  type: ReportType;
+  text: string;
+  timestamp: Date;
+  unit: string;
+  coordinates?: string;
+  priority?: "ROUTINE" | "PRIORITY" | "IMMEDIATE" | "FLASH";
+  casualties?: number;
 }
 
 export function StreamPanel({ streamId, onItemClick }: StreamPanelProps) {
-  const [message, setMessage] = useState("")
-  const [updates, setUpdates] = useState<BattlefieldReport[]>([
-    {
-      id: 1,
-      type: "EOINCREP",
-      text: "Enemy patrol spotted, 6 personnel, moving north",
-      timestamp: new Date(Date.now() - 120000),
-      unit: "Alpha Company",
-      coordinates: "38.8977° N, 77.0365° W",
-      priority: "PRIORITY",
-    },
-    {
-      id: 2,
-      type: "CASEVAC",
-      text: "2x casualties, gunshot wounds, requesting immediate evac",
-      timestamp: new Date(Date.now() - 180000),
-      unit: "Bravo Platoon",
-      coordinates: "38.9072° N, 77.0369° W",
-      priority: "IMMEDIATE",
-      casualties: 2,
-    },
-    {
-      id: 3,
-      type: "SITREP",
-      text: "Perimeter secure, all checkpoints manned, no contact",
-      timestamp: new Date(Date.now() - 240000),
-      unit: "Charlie Squad",
-      coordinates: "38.8895° N, 77.0353° W",
-      priority: "ROUTINE",
-    },
-    {
-      id: 4,
-      type: "INTREP",
-      text: "Intercepted communications suggest enemy reinforcements inbound",
-      timestamp: new Date(Date.now() - 300000),
-      unit: "Intel Section",
-      coordinates: "38.8920° N, 77.0380° W",
-      priority: "PRIORITY",
-    },
-    {
-      id: 5,
-      type: "SPOTREP",
-      text: "Vehicle movement detected, 3x technical trucks, heading east",
-      timestamp: new Date(Date.now() - 360000),
-      unit: "Delta Platoon",
-      coordinates: "38.8850° N, 77.0340° W",
-      priority: "FLASH",
-    },
-    {
-      id: 6,
-      type: "MEDEVAC",
-      text: "1x heat casualty, stable condition, requesting routine transport",
-      timestamp: new Date(Date.now() - 420000),
-      unit: "Echo Company",
-      coordinates: "38.9000° N, 77.0400° W",
-      priority: "ROUTINE",
-      casualties: 1,
-    },
-  ])
+  const [message, setMessage] = useState("");
+  const [updates, setUpdates] = useState<BattlefieldReport[]>([]);
+  const [loading, setLoading] = useState(false);
+  const API_BASE = "http://localhost:8000";
 
-  const handleSend = () => {
-    if (!message.trim()) return
+  // Fetch existing reports on mount and periodically
+  useEffect(() => {
+    fetchReports();
+    const interval = setInterval(fetchReports, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
-    const newUpdate: BattlefieldReport = {
-      id: updates.length + 1,
-      type: "SITREP",
-      text: message,
-      timestamp: new Date(),
-      unit: streamId.charAt(0).toUpperCase() + streamId.slice(1),
-      priority: "ROUTINE",
+  const fetchReports = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/reports?limit=50`);
+      const reports = response.data.reports || [];
+
+      // Transform backend reports to BattlefieldReport format
+      const transformedReports: BattlefieldReport[] = reports.map(
+        (report: any, index: number) => {
+          const structuredData =
+            typeof report.structured_json === "string"
+              ? JSON.parse(report.structured_json)
+              : report.structured_json;
+
+          // Handle casualties - can be a number or array of casualty objects
+          let casualtyCount: number | undefined;
+          if (structuredData.casualties) {
+            if (Array.isArray(structuredData.casualties)) {
+              casualtyCount = structuredData.casualties.length;
+            } else if (typeof structuredData.casualties === "number") {
+              casualtyCount = structuredData.casualties;
+            }
+          }
+
+          return {
+            id: index + 1,
+            type: report.report_type as ReportType,
+            text:
+              structuredData.description ||
+              structuredData.status ||
+              structuredData.observation ||
+              JSON.stringify(structuredData),
+            timestamp: new Date(report.timestamp),
+            unit: report.soldier_name || report.unit_name || "Unknown Unit",
+            coordinates: structuredData.location || structuredData.coordinates,
+            priority: structuredData.priority as any,
+            casualties: casualtyCount,
+          };
+        }
+      );
+
+      setUpdates(transformedReports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
     }
+  };
 
-    setUpdates([newUpdate, ...updates])
-    setMessage("")
-  }
+  const handleSend = async () => {
+    if (!message.trim() || loading) return;
+
+    setLoading(true);
+    try {
+      // Submit to backend API - using ALPHA_01 as default soldier
+      const reportData = {
+        report_type: "SITREP",
+        structured_json: {
+          status: message,
+          location: "Unknown",
+          timestamp: new Date().toISOString(),
+        },
+        confidence: 0.95,
+      };
+
+      await axios.post(`${API_BASE}/soldiers/ALPHA_01/reports`, reportData);
+
+      setMessage("");
+      // Refresh reports to show the new one
+      fetchReports();
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      alert("Failed to submit report. Make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+      e.preventDefault();
+      handleSend();
     }
-  }
+  };
 
   const getReportTypeColor = (type: ReportType) => {
-    return "text-foreground/70"
-  }
+    return "text-foreground/70";
+  };
 
   const getReportTypeBg = (type: ReportType) => {
     switch (type) {
       case "CASEVAC":
       case "MEDEVAC":
-        return "bg-red-500/20 border-red-500/30"
+        return "bg-military-red/20 border-military-red/30";
       case "EOINCREP":
       case "SPOTREP":
-        return "bg-yellow-500/20 border-yellow-500/30"
+        return "bg-military-amber/20 border-military-amber/30";
       case "INTREP":
-        return "bg-blue-500/20 border-blue-500/30"
+        return "bg-military-blue/20 border-military-blue/30";
       case "SITREP":
-        return "bg-green-500/20 border-green-500/30"
+        return "bg-military-olive/20 border-military-olive/30";
       default:
-        return "bg-foreground/10"
+        return "bg-foreground/10";
     }
-  }
+  };
 
   const getReportIcon = (type: ReportType) => {
     switch (type) {
       case "CASEVAC":
       case "MEDEVAC":
-        return AlertTriangle
+        return AlertTriangle;
       case "EOINCREP":
-        return Eye
+        return Eye;
       case "SPOTREP":
-        return Zap
+        return Zap;
       case "INTREP":
-        return Activity
+        return Activity;
       case "SITREP":
-        return Shield
+        return Shield;
       default:
-        return Radio
+        return Radio;
     }
-  }
+  };
 
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
       case "FLASH":
       case "IMMEDIATE":
-        return "bg-red-500 text-white"
+        return "bg-military-red text-white";
       case "PRIORITY":
-        return "bg-yellow-500 text-black"
+        return "bg-military-amber text-black";
       default:
-        return "bg-foreground/30 text-foreground"
+        return "bg-foreground/30 text-foreground";
     }
-  }
+  };
 
   return (
-    <div className="neumorphic border-0 overflow-hidden h-full">
-      <div className="p-6 space-y-4 h-full flex flex-col">
+    <Card className="neumorphic border-0 overflow-hidden">
+      <div className="p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold font-mono flex items-center gap-2 text-foreground">
@@ -171,18 +199,20 @@ export function StreamPanel({ streamId, onItemClick }: StreamPanelProps) {
           </h2>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-foreground/50 animate-pulse" />
-            <span className="text-xs text-muted-foreground font-mono">LIVE</span>
+            <span className="text-xs text-muted-foreground font-mono">
+              LIVE
+            </span>
           </div>
         </div>
 
         {/* Input Field */}
         <div className="relative">
-          <input
+          <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Submit report..."
-            className="w-full px-4 py-2 bg-background/50 border border-border rounded-lg pr-12 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-foreground/50"
+            className="neumorphic-inset border-0 pr-12 font-mono text-sm focus-visible:ring-foreground/50 focus-visible:ring-2"
           />
           <Button
             size="icon"
@@ -194,18 +224,18 @@ export function StreamPanel({ streamId, onItemClick }: StreamPanelProps) {
         </div>
 
         {/* Updates Stream */}
-        <div className="space-y-2 flex-1 overflow-y-auto pr-2">
+        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
           {updates.map((update) => {
-            const ReportIcon = getReportIcon(update.type)
+            const ReportIcon = getReportIcon(update.type);
             return (
               <div
                 key={update.id}
                 onClick={() => onItemClick(update)}
                 className={cn(
                   "p-4 rounded-lg cursor-pointer transition-all duration-300 hover:scale-[1.02]",
-                  "bg-background/50 border border-border",
+                  "neumorphic-inset border",
                   getReportTypeBg(update.type),
-                  "hover:shadow-lg",
+                  "hover:shadow-lg"
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -214,7 +244,7 @@ export function StreamPanel({ streamId, onItemClick }: StreamPanelProps) {
                       <span
                         className={cn(
                           "px-2 py-0.5 rounded text-xs font-bold font-mono flex items-center gap-1 text-foreground",
-                          getReportTypeBg(update.type),
+                          getReportTypeBg(update.type)
                         )}
                       >
                         <ReportIcon className="h-3 w-3" />
@@ -224,21 +254,23 @@ export function StreamPanel({ streamId, onItemClick }: StreamPanelProps) {
                         <span
                           className={cn(
                             "px-2 py-0.5 rounded text-xs font-bold font-mono",
-                            getPriorityColor(update.priority),
+                            getPriorityColor(update.priority)
                           )}
                         >
                           {update.priority}
                         </span>
                       )}
                       {update.casualties && (
-                        <span className="px-2 py-0.5 rounded text-xs font-bold font-mono bg-red-500/30 text-foreground flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-xs font-bold font-mono bg-military-red/30 text-foreground flex items-center gap-1">
                           <AlertTriangle className="h-3 w-3" />
                           {update.casualties}x
                         </span>
                       )}
                     </div>
 
-                    <p className="text-sm font-medium leading-relaxed text-foreground">{update.text}</p>
+                    <p className="text-sm font-medium leading-relaxed text-foreground">
+                      {update.text}
+                    </p>
 
                     <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono">
                       <span>{update.unit}</span>
@@ -252,13 +284,15 @@ export function StreamPanel({ streamId, onItemClick }: StreamPanelProps) {
                       <span>{update.timestamp.toLocaleTimeString()}</span>
                     </div>
                   </div>
-                  <div className={cn("h-2 w-2 rounded-full mt-2 bg-foreground/50")} />
+                  <div
+                    className={cn("h-2 w-2 rounded-full mt-2 bg-foreground/50")}
+                  />
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
-    </div>
-  )
+    </Card>
+  );
 }

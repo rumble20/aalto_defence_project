@@ -1,17 +1,25 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import sqlite3
 import paho.mqtt.client as mqtt
 import json
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import threading
 import logging
+import google.generativeai as genai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Configure Gemini API
+GEMINI_API_KEY = "AIzaSyB2LVUXt2a9nMCpJwGJWen4_EECudv9u_c"
+genai.configure(api_key=GEMINI_API_KEY)
+# Use gemini-2.5-pro - most capable model with advanced reasoning
+gemini_model = genai.GenerativeModel('gemini-2.5-pro')
 
 app = FastAPI(title="Military Hierarchy Backend", version="1.0.0")
 
@@ -255,7 +263,7 @@ async def get_unit_soldiers(unit_id: str):
     }
 
 @app.get("/soldiers/{soldier_id}/raw_inputs")
-async def get_soldier_raw_inputs(soldier_id: str, limit: int = 50):
+async def get_soldier_raw_inputs(soldier_id: str, limit: int = 500):
     """Get raw inputs from a specific soldier."""
     conn = get_db_connection()
     c = conn.cursor()
@@ -275,7 +283,7 @@ async def get_soldier_raw_inputs(soldier_id: str, limit: int = 50):
     }
 
 @app.get("/soldiers/{soldier_id}/reports")
-async def get_soldier_reports(soldier_id: str, limit: int = 50):
+async def get_soldier_reports(soldier_id: str, limit: int = 500):
     """Get structured reports from a specific soldier."""
     conn = get_db_connection()
     c = conn.cursor()
@@ -299,7 +307,7 @@ async def get_soldier_reports(soldier_id: str, limit: int = 50):
     }
 
 @app.get("/reports")
-async def get_all_reports(limit: int = 100):
+async def get_all_reports(limit: int = 1000):
     """Get all structured reports."""
     conn = get_db_connection()
     c = conn.cursor()
@@ -496,16 +504,15 @@ async def get_military_hierarchy():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # Get all units
-    c.execute("SELECT * FROM units ORDER BY level, name")
+    # Get all units - select specific columns to avoid unpacking issues
+    c.execute("SELECT unit_id, name, parent_unit_id, level FROM units ORDER BY level, name")
     units = c.fetchall()
     
     # Get all soldiers
     c.execute("""
-        SELECT s.*, u.name as unit_name, u.level as unit_level
+        SELECT s.soldier_id, s.name, s.rank, s.unit_id, s.device_id
         FROM soldiers s 
-        JOIN units u ON s.unit_id = u.unit_id 
-        ORDER BY u.level, s.rank, s.name
+        ORDER BY s.rank, s.name
     """)
     soldiers = c.fetchall()
     
@@ -525,7 +532,7 @@ async def get_military_hierarchy():
         }
     
     # Add soldiers to units
-    soldier_columns = ["soldier_id", "name", "rank", "unit_id", "device_id", "unit_name", "unit_level"]
+    soldier_columns = ["soldier_id", "name", "rank", "unit_id", "device_id"]
     for soldier in soldiers:
         soldier_data = dict(zip(soldier_columns, soldier))
         unit_id = soldier_data["unit_id"]
@@ -544,7 +551,302 @@ async def get_military_hierarchy():
     
     return {"hierarchy": hierarchy}
 
-# Startup event
+# Pydantic models for API
+class ChatMessage(BaseModel):
+    message: str
+    context: Dict[str, Any]
+
+class FRAGOSuggestRequest(BaseModel):
+    unit_id: str
+    unit_name: str
+    soldier_ids: List[str]
+    reports: List[Dict[str, Any]]
+
+class FRAGOGenerateRequest(BaseModel):
+    unit_id: str
+    unit_name: str
+    frago_fields: Dict[str, Any]
+    source_report_ids: List[str]
+
+@app.post("/ai/chat")
+async def ai_chat(chat_request: ChatMessage):
+    """
+    AI chat endpoint that analyzes reports using Google Gemini AI.
+    """
+    try:
+        message = chat_request.message
+        context = chat_request.context
+        
+        # Extract node info and reports from context
+        node = context.get("node", {})
+        reports = context.get("reports", [])
+        
+        # Log what we received for debugging
+        logger.info(f"AI Chat request - Node: {node.get('name')}, Reports count: {len(reports)}")
+        if reports and len(reports) > 0:
+            logger.info(f"First report sample: {reports[0]}")
+        
+        # Build a response based on the message and reports
+        if not reports:
+            response = f"I don't have any reports available for {node.get('name', 'this node')}. Once reports are generated, I can help analyze them."
+        else:
+            report_count = len(reports)
+            
+            # Build a simple, direct prompt with all report data
+            prompt = f"""You are a military intelligence analyst AI. Analyze these battlefield reports and answer the user's question.
+
+Node: {node.get('name', 'Unknown')}
+User Question: {message}
+
+Reports ({report_count} total):
+"""
+            
+            # Add all reports with full details (limit to 50 to avoid token overload)
+            for i, report in enumerate(reports[:50], 1):
+                try:
+                    # Handle both original backend format and transformed frontend format
+                    report_type = report.get('report_type') or report.get('type', 'UNKNOWN')
+                    soldier_name = report.get('soldier_name') or report.get('from', 'Unknown')
+                    timestamp = report.get('timestamp') or report.get('time', 'unknown')
+                    
+                    # Get structured data - could be in 'structured_json' or 'data' field
+                    if 'structured_json' in report:
+                        structured = json.loads(report.get("structured_json", "{}")) if isinstance(report.get("structured_json"), str) else report.get("structured_json", {})
+                    else:
+                        structured = report.get('data', {})
+                    
+                    prompt += f"\n{i}. [{report_type}] from {soldier_name} at {timestamp}\n"
+                    prompt += f"   Data: {json.dumps(structured)}\n"
+                except Exception as e:
+                    logger.error(f"Error parsing report {i}: {e}")
+                    logger.error(f"Report structure: {report}")
+                    continue
+            
+            if report_count > 50:
+                prompt += f"\n... and {report_count - 50} more reports (showing first 50)\n"
+            
+            prompt += "\n\nProvide a direct, clear answer using military terminology. Be concise and actionable."
+            
+            try:
+                # Call Gemini API with safety settings to avoid blocks
+                gemini_response = gemini_model.generate_content(
+                    prompt,
+                    safety_settings={
+                        'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
+                        'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
+                        'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
+                        'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE',
+                    }
+                )
+                response = gemini_response.text
+                logger.info(f"Gemini API success: Generated response for {report_count} reports")
+            except Exception as e:
+                logger.error(f"Gemini API error: {e}")
+                # Simple fallback without confusing prompts
+                response = f"Error: Unable to connect to AI service. Raw data: {report_count} reports available from {node.get('name')}. Please try again."
+        
+        return {
+            "response": response,
+            "timestamp": datetime.now().isoformat(),
+            "reports_analyzed": len(reports)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in AI chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
+@app.post("/frago/suggest")
+async def suggest_frago(request: FRAGOSuggestRequest):
+    """
+    Analyze reports and suggest FRAGO fields using AI.
+    """
+    try:
+        unit_name = request.unit_name
+        reports = request.reports
+        
+        logger.info(f"FRAGO Suggest - Unit: {unit_name}, Reports: {len(reports)}")
+        
+        if not reports:
+            raise HTTPException(status_code=400, detail="No reports available for analysis")
+        
+        # Build comprehensive prompt for FRAGO generation
+        prompt = f"""You are a military operations officer AI. Analyze these battlefield reports and suggest a FRAGMENTARY ORDER (FRAGO) for {unit_name} and its subordinate units.
+
+A FRAGO modifies an existing operation order. Use the 5-paragraph format:
+1. SITUATION - Enemy forces, friendly forces, attachments/detachments
+2. MISSION - Who, what, when, where, and why (task and purpose)
+3. EXECUTION - Concept of operations, tasks to subordinate units, coordinating instructions
+4. SERVICE SUPPORT - Logistics, medical, transportation
+5. COMMAND AND SIGNAL - Command posts, succession of command, communications
+
+REPORTS FROM {unit_name} ({len(reports)} total):
+"""
+        
+        # Add all reports with full context
+        for i, report in enumerate(reports[:100], 1):  # Limit to 100 for token management
+            try:
+                report_type = report.get('report_type') or report.get('type', 'UNKNOWN')
+                soldier_name = report.get('soldier_name') or report.get('from', 'Unknown')
+                timestamp = report.get('timestamp') or report.get('time', 'unknown')
+                
+                if 'structured_json' in report:
+                    structured = json.loads(report.get("structured_json", "{}")) if isinstance(report.get("structured_json"), str) else report.get("structured_json", {})
+                else:
+                    structured = report.get('data', {})
+                
+                prompt += f"\n{i}. [{report_type}] from {soldier_name} at {timestamp}\n"
+                prompt += f"   {json.dumps(structured)}\n"
+            except Exception as e:
+                logger.error(f"Error parsing report {i}: {e}")
+                continue
+        
+        if len(reports) > 100:
+            prompt += f"\n... and {len(reports) - 100} more reports\n"
+        
+        prompt += """\n\nBased on these reports, suggest a FRAGO with the following JSON structure:
+{
+  "situation": "Brief enemy and friendly situation update",
+  "mission": "Clear mission statement with task and purpose",
+  "execution": "Concept of operations and key tasks",
+  "service_support": "Logistics and support requirements",
+  "command_signal": "Command post locations and communication plan"
+}
+
+Provide ONLY the JSON object, no additional text."""
+        
+        try:
+            # Call Gemini API
+            gemini_response = gemini_model.generate_content(
+                prompt,
+                safety_settings={
+                    'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
+                    'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
+                    'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
+                    'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE',
+                }
+            )
+            
+            response_text = gemini_response.text.strip()
+            
+            # Try to extract JSON from response (handle markdown code blocks)
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+            elif "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+            
+            suggested_fields = json.loads(response_text)
+            
+            logger.info(f"FRAGO suggestion generated successfully for {unit_name}")
+            
+            return {
+                "suggested_fields": suggested_fields,
+                "reports_analyzed": len(reports),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse Gemini response as JSON: {e}")
+            logger.error(f"Response text: {response_text}")
+            # Return a fallback structure
+            return {
+                "suggested_fields": {
+                    "situation": f"Analysis of {len(reports)} reports from {unit_name}",
+                    "mission": "Continue current operations with increased vigilance",
+                    "execution": "Maintain current posture and report any changes",
+                    "service_support": "Continue current logistics operations",
+                    "command_signal": "No changes to command structure"
+                },
+                "reports_analyzed": len(reports),
+                "timestamp": datetime.now().isoformat(),
+                "warning": "AI response parsing failed, using fallback template"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error in FRAGO suggest: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating FRAGO suggestion: {str(e)}")
+
+@app.post("/frago/generate")
+async def generate_frago(request: FRAGOGenerateRequest):
+    """
+    Generate and save a formatted FRAGO document.
+    """
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Get next FRAGO number
+        c.execute("SELECT next_number FROM frago_sequence WHERE id = 1")
+        frago_number = c.fetchone()[0]
+        
+        # Increment sequence
+        c.execute("UPDATE frago_sequence SET next_number = next_number + 1 WHERE id = 1")
+        
+        # Format FRAGO document
+        fields = request.frago_fields
+        unit_name = request.unit_name
+        timestamp = datetime.now()
+        
+        formatted_doc = f"""FRAGMENTARY ORDER {frago_number:04d}
+{unit_name}
+{timestamp.strftime('%d%H%M%S %b %Y').upper()}
+
+1. SITUATION
+{fields.get('situation', 'No change to current situation.')}
+
+2. MISSION
+{fields.get('mission', 'Continue current mission.')}
+
+3. EXECUTION
+{fields.get('execution', 'No change to current execution.')}
+
+4. SERVICE SUPPORT
+{fields.get('service_support', 'Continue current support operations.')}
+
+5. COMMAND AND SIGNAL
+{fields.get('command_signal', 'No change to command and signal.')}
+
+ACKNOWLEDGE.
+//END OF FRAGO//
+"""
+        
+        # Save to database
+        frago_id = str(uuid.uuid4())
+        c.execute("""
+            INSERT INTO fragos (
+                frago_id, frago_number, unit_id, created_at, 
+                suggested_fields, final_fields, formatted_document, source_reports
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            frago_id,
+            frago_number,
+            request.unit_id,
+            timestamp.isoformat(),
+            json.dumps(fields),  # For this version, suggested = final
+            json.dumps(fields),
+            formatted_doc,
+            json.dumps(request.source_report_ids)
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"FRAGO {frago_number:04d} generated for {unit_name}")
+        
+        return {
+            "frago_id": frago_id,
+            "frago_number": frago_number,
+            "formatted_document": formatted_doc,
+            "timestamp": timestamp.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating FRAGO: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating FRAGO: {str(e)}")
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize MQTT client on startup."""
