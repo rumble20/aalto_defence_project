@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, FileText, Download } from "lucide-react";
@@ -18,6 +12,7 @@ interface FRAGOBuilderProps {
   unitName: string;
   soldierIds: string[];
   reports: any[];
+  suggestionId?: string | null;
 }
 
 interface FRAGOFields {
@@ -33,8 +28,10 @@ export function FRAGOBuilder({
   unitName,
   soldierIds,
   reports,
+  suggestionId,
 }: FRAGOBuilderProps) {
   const [loading, setLoading] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [fields, setFields] = useState<FRAGOFields>({
     situation: "",
     mission: "",
@@ -45,17 +42,8 @@ export function FRAGOBuilder({
   const [generatedDoc, setGeneratedDoc] = useState<string>("");
   const [fragoNumber, setFragoNumber] = useState<number | null>(null);
 
-  // Auto-resize textareas when fields change
-  useEffect(() => {
-    const textareas = document.querySelectorAll("textarea");
-    textareas.forEach((textarea) => {
-      textarea.style.height = "auto";
-      textarea.style.height = textarea.scrollHeight + "px";
-    });
-  }, [fields]);
-
   const handleSuggest = async () => {
-    setLoading(true);
+    setSuggesting(true);
     try {
       const response = await fetch("http://localhost:8000/frago/suggest", {
         method: "POST",
@@ -65,6 +53,7 @@ export function FRAGOBuilder({
           unit_name: unitName,
           soldier_ids: soldierIds,
           reports: reports,
+          suggestion_id: suggestionId,
         }),
       });
 
@@ -76,7 +65,7 @@ export function FRAGOBuilder({
       console.error("Error getting FRAGO suggestion:", error);
       alert("Failed to get AI suggestion. Please try again.");
     } finally {
-      setLoading(false);
+      setSuggesting(false);
     }
   };
 
@@ -131,168 +120,162 @@ export function FRAGOBuilder({
   };
 
   return (
-    <div className="space-y-2 text-xs h-full overflow-y-auto">
-      <Card className="border-0">
-        <CardHeader className="p-2">
-          <CardTitle className="text-xs font-mono">{unitName}</CardTitle>
-          <CardDescription className="text-[10px]">
-            {reports.length} reports
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 p-2 pt-0">
-          <Button
-            onClick={handleSuggest}
-            disabled={loading || reports.length === 0}
-            className="w-full h-6 text-[10px]"
-            size="sm"
-          >
-            {loading ? (
-              <Loader2 className="mr-1 h-2 w-2 animate-spin" />
-            ) : (
-              <Sparkles className="mr-1 h-2 w-2" />
-            )}
-            AI Suggest
-          </Button>
-
-          <div className="space-y-1.5">
+    <Card className="h-full flex flex-col bg-card/50 backdrop-blur-sm border-border overflow-hidden">
+      <div className="flex-shrink-0 border-b border-border p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-green-500" />
             <div>
-              <Label htmlFor="situation" className="text-[10px] font-mono">
-                1. SIT
-              </Label>
-              <Textarea
-                id="situation"
-                value={fields.situation}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  updateField("situation", e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = e.target.scrollHeight + "px";
-                }}
-                placeholder="Enemy/friendly forces..."
-                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="mission" className="text-[10px] font-mono">
-                2. MISSION
-              </Label>
-              <Textarea
-                id="mission"
-                value={fields.mission}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  updateField("mission", e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = e.target.scrollHeight + "px";
-                }}
-                placeholder="Task and purpose..."
-                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="execution" className="text-[10px] font-mono">
-                3. EXEC
-              </Label>
-              <Textarea
-                id="execution"
-                value={fields.execution}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  updateField("execution", e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = e.target.scrollHeight + "px";
-                }}
-                placeholder="Concept of operations..."
-                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label
-                htmlFor="service_support"
-                className="text-[10px] font-mono"
-              >
-                4. CSS
-              </Label>
-              <Textarea
-                id="service_support"
-                value={fields.service_support}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  updateField("service_support", e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = e.target.scrollHeight + "px";
-                }}
-                placeholder="Logistics..."
-                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="command_signal" className="text-[10px] font-mono">
-                5. C2
-              </Label>
-              <Textarea
-                id="command_signal"
-                value={fields.command_signal}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                  updateField("command_signal", e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = e.target.scrollHeight + "px";
-                }}
-                placeholder="Command & signal..."
-                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
-                rows={2}
-              />
+              <h2 className="text-sm font-bold font-mono text-foreground tracking-wider">
+                FRAGMENTARY ORDER (FRAGO)
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {unitName} - {reports.length} reports
+              </p>
             </div>
           </div>
-
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
+            <Button
+              onClick={handleSuggest}
+              disabled={suggesting || reports.length === 0}
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              {suggesting ? "Analyzing..." : "AI Suggest"}
+            </Button>
             <Button
               onClick={handleGenerate}
               disabled={loading || !fields.mission}
-              className="flex-1 h-6 text-[10px]"
               size="sm"
+              className="h-7 text-xs bg-primary hover:bg-primary/90"
             >
-              {loading ? (
-                <Loader2 className="mr-1 h-2 w-2 animate-spin" />
-              ) : (
-                <FileText className="mr-1 h-2 w-2" />
-              )}
-              Generate
+              <FileText className="h-3 w-3 mr-1" />
+              {loading ? "Generating..." : "Generate FRAGO"}
             </Button>
-
-            {generatedDoc && (
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+        {/* 1. SITUATION */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="situation"
+            className="text-xs font-mono text-muted-foreground font-bold"
+          >
+            1. SITUATION
+          </Label>
+          <Textarea
+            id="situation"
+            value={fields.situation}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              updateField("situation", e.target.value);
+            }}
+            placeholder="Enemy/friendly forces..."
+            className="font-mono text-xs resize-none overflow-y-auto max-h-[120px] bg-background/50"
+            rows={2}
+          />
+        </div>
+        {/* 2. MISSION */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="mission"
+            className="text-xs font-mono text-muted-foreground font-bold"
+          >
+            2. MISSION
+          </Label>
+          <Textarea
+            id="mission"
+            value={fields.mission}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              updateField("mission", e.target.value);
+            }}
+            placeholder="Task and purpose..."
+            className="font-mono text-xs resize-none overflow-y-auto max-h-[120px] bg-background/50"
+            rows={2}
+          />
+        </div>{" "}
+        {/* 3. EXECUTION */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="execution"
+            className="text-xs font-mono text-muted-foreground font-bold"
+          >
+            3. EXECUTION
+          </Label>
+          <Textarea
+            id="execution"
+            value={fields.execution}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              updateField("execution", e.target.value);
+            }}
+            placeholder="Concept of operations..."
+            className="font-mono text-xs resize-none overflow-y-auto max-h-[120px] bg-background/50"
+            rows={3}
+          />
+        </div>{" "}
+        {/* 4. SERVICE & SUPPORT */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="service_support"
+            className="text-xs font-mono text-muted-foreground font-bold"
+          >
+            4. SERVICE & SUPPORT
+          </Label>
+          <Textarea
+            id="service_support"
+            value={fields.service_support}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              updateField("service_support", e.target.value);
+            }}
+            placeholder="Logistics..."
+            className="font-mono text-xs resize-none overflow-y-auto max-h-[120px] bg-background/50"
+            rows={2}
+          />
+        </div>{" "}
+        {/* 5. COMMAND & SIGNAL */}
+        <div className="space-y-1">
+          <Label
+            htmlFor="command_signal"
+            className="text-xs font-mono text-muted-foreground font-bold"
+          >
+            5. COMMAND & SIGNAL
+          </Label>
+          <Textarea
+            id="command_signal"
+            value={fields.command_signal}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              updateField("command_signal", e.target.value);
+            }}
+            placeholder="Command & signal..."
+            className="font-mono text-xs resize-none overflow-y-auto max-h-[120px] bg-background/50"
+            rows={2}
+          />
+        </div>
+        {/* Preview */}
+        {generatedDoc && (
+          <div className="border border-border rounded-md bg-card/30 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-xs font-mono text-foreground">
+                FRAGO {fragoNumber?.toString().padStart(4, "0")} - Preview
+              </Label>
               <Button
                 onClick={handleDownload}
-                variant="outline"
                 size="sm"
-                className="h-6 text-[10px]"
+                variant="outline"
+                className="h-6 text-xs"
               >
-                <Download className="mr-1 h-2 w-2" />
-                Save
+                <Download className="h-3 w-3 mr-1" />
+                Download
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {generatedDoc && (
-        <Card className="border-0">
-          <CardHeader className="p-2">
-            <CardTitle className="text-xs font-mono">
-              FRAGO {fragoNumber?.toString().padStart(4, "0")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 pt-0">
-            <pre className="whitespace-pre-wrap break-words font-mono text-[9px] bg-muted p-2 rounded-lg leading-[1.3] overflow-x-hidden">
+            </div>
+            <pre className="text-xs font-mono text-foreground/80 whitespace-pre-wrap overflow-x-auto">
               {generatedDoc}
             </pre>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
