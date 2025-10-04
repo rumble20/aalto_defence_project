@@ -1,0 +1,19 @@
+{
+  "action": "move",
+  "target_units": [
+    "ID",
+    "Alpha",
+    "Squad",
+    "Bravo",
+    "Team",
+    "HIGH",
+    "Zulu",
+    "Maintain"
+  ],
+  "coordinates": {
+    "x": 123.456,
+    "y": 789.012
+  },
+  "timeframe": "immediate",
+  "priority": "HIGH"
+}
