@@ -1,11 +1,34 @@
-# llm_processor.py
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import torch
-import re
-import json
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal
+from enum import Enum
+import os
+from datetime import datetime
+from pathlib import Path
+
+class Priority(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+class Coordinates(BaseModel):
+    x: float = Field(..., description="X coordinate")
+    y: float = Field(..., description="Y coordinate")
+
+class MilitaryPacket(BaseModel):
+    action: str = Field(..., description="Military action to be taken")
+    target_units: List[str] = Field(default_factory=list, description="Units involved in the action")
+    coordinates: Coordinates
+    timeframe: str = Field(..., description="Timeframe for the action")
+    priority: Priority = Field(..., description="Priority level of the action")
+
+class ReportType(str, Enum):
+    EOINCREP = "EOINCREP"
+    CASEVAC = "CASEVAC"
 
 class MilitaryReportFormatter:
-    def __init__(self, model_name="mosaicml/mpt-7b-instruct"):
+    def __init__(self, model_name="mosaicml/mpt-7b-instruct", output_dir="reports"):
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -15,73 +38,83 @@ class MilitaryReportFormatter:
             device_map="auto"  # Automatically manage model placement
         )
         self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         
-    def format_eoincrep(self, packet):
+    def format_eoincrep(self, packet: MilitaryPacket) -> str:
         """
-        Format a JSON military packet into EOINCREP standard report. Used for threat reporting, 
-        incident details, intelligence, and follow-up actions.
+        Format a validated MilitaryPacket into EOINCREP standard report.
+        Used for enemy contact reports, threat sightings, and other operational updates.
         """
-        action = packet.get("action", "UNKNOWN")
-        units = ", ".join(packet.get("target_units", [])) or "N/A"
-        coords = packet.get("coordinates", {})
-        x = coords.get("x", "N/A")
-        y = coords.get("y", "N/A")
-        timeframe = packet.get("timeframe", "N/A")
-        priority = packet.get("priority", "N/A")
-
-        report = (
+        return (
             f"EOINCREP REPORT\n"
-            f"Action: {action}\n"
-            f"Units Involved: {units}\n"
-            f"Coordinates: X={x}, Y={y}\n"
-            f"Timeframe: {timeframe}\n"
-            f"Priority: {priority}\n"
+            f"Action: {packet.action}\n"
+            f"Units Involved: {', '.join(packet.target_units) if packet.target_units else 'N/A'}\n"
+            f"Coordinates: X={packet.coordinates.x}, Y={packet.coordinates.y}\n"
+            f"Timeframe: {packet.timeframe}\n"
+            f"Priority: {packet.priority}\n"
         )
-        return report
 
-    def format_casevac(self, packet):
+    def format_casevac(self, packet: MilitaryPacket) -> str:
         """
-        Format a JSON military packet into CASEVAC standard report.
-        Used for casualty evacuation details, including location, urgency, and resources needed.
+        Format a validated MilitaryPacket into CASEVAC standard report.
+        Used for casualty evacuation requests.
         """
-        action = packet.get("action", "UNKNOWN")
-        units = ", ".join(packet.get("target_units", [])) or "N/A"
-        coords = packet.get("coordinates", {})
-        x = coords.get("x", "N/A")
-        y = coords.get("y", "N/A")
-        timeframe = packet.get("timeframe", "N/A")
-        priority = packet.get("priority", "N/A")
-
-        report = (
+        return (
             f"CASEVAC REPORT\n"
-            f"Evacuation Action: {action}\n"
-            f"Units to Evacuate: {units}\n"
-            f"Evacuation Coordinates: X={x}, Y={y}\n"
-            f"Required Timeframe: {timeframe}\n"
-            f"Evacuation Priority: {priority}\n"
+            f"Evacuation Action: {packet.action}\n"
+            f"Units to Evacuate: {', '.join(packet.target_units) if packet.target_units else 'N/A'}\n"
+            f"Evacuation Coordinates: X={packet.coordinates.x}, Y={packet.coordinates.y}\n"
+            f"Required Timeframe: {packet.timeframe}\n"
+            f"Evacuation Priority: {packet.priority}\n"
         )
-        return report
 
-    def format_report(self, packet, report_type="EOINCREP"):
+    def format_report(self, packet_dict: dict, report_type: ReportType = ReportType.EOINCREP) -> str:
         """
-        Format packet into the requested report type.
+        Format packet into EOINCREP report type with validation.
         """
-        if report_type.upper() == "EOINCREP":
-            return self.format_eoincrep(packet)
-        elif report_type.upper() == "CASEVAC":
-            return self.format_casevac(packet)
-        else:
-            return "Unknown report type."
-            
+        try:
+            packet = MilitaryPacket(**packet_dict)
+            if report_type == ReportType.EOINCREP:
+                return self.format_eoincrep(packet)
+            elif report_type == ReportType.CASEVAC:
+                return self.format_casevac(packet)
+        except Exception as e:
+            return f"Error processing report: {str(e)}"
+
+    def save_report_to_file(self, report: str, report_type: ReportType) -> str:
+        """
+        Save the formatted report to a text file with timestamp.
+        Returns the path to the saved file.
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{report_type}_{timestamp}.txt"
+        filepath = self.output_dir / filename
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(report)
+        
+        return str(filepath)
+
+    def format_and_save_report(self, packet_dict: dict, report_type: ReportType = ReportType.EOINCREP) -> tuple[str, str]:
+        """
+        Format the report, save it to a file, and return both the report content and file path.
+        """
+        report_content = self.format_report(packet_dict, report_type)
+        if not report_content.startswith("Error"):
+            filepath = self.save_report_to_file(report_content, report_type)
+            return report_content, filepath
+        return report_content, ""
+
 
 # Example usage:
 # formatter = MilitaryReportFormatter()
-# packet = {
+# packet_dict = {
 #     "action": "Advance",
 #     "target_units": ["Alpha", "Bravo"],
-#     "coordinates": {"x": 123, "y": 456},
+#     "coordinates": {"x": 123.0, "y": 456.0},
 #     "timeframe": "0600Z",
 #     "priority": "HIGH"
 # }
-# print(formatter.format_report(packet, "EOINCREP"))
-# print(formatter.format_report(packet, "CASEVAC"))
+# print(formatter.format_report(packet_dict, ReportType.EOINCREP))
+# print(formatter.format_report(packet_dict, ReportType.CASEVAC))
