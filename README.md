@@ -61,8 +61,8 @@ aalto_defence_project/
 # Activate virtual environment
 .venv\Scripts\activate
 
-# Start backend server
-python backend.py
+# Start backend server (from project root)
+python backend/backend.py
 ```
 
 The backend will run on `http://localhost:8000`

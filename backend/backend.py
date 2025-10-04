@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "military_hierarchy.db"
+DB_PATH = "../database/military_hierarchy.db"
 
 # Global MQTT client
 mqtt_client = None
