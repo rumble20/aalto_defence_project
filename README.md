@@ -13,39 +13,39 @@ A hackathon-ready system for military communication. Starts with speech-to-text 
 
 ## System Architecture
 
-Soldier Device (Raspberry Pi) → Speech_to_text -> convert into formatted JSON -> MQTT → FastAPI Backend → SQLite Database -> 
-↓
-Backend Services & AI Processing
-↓
-Next.js Frontend
+Soldier Device (Raspberry Pi) → Speech_to_text -> convert into formatted JSON through AI interpreting -> MQTT → FastAPI Backend ->
+→ SQLite Database -> Backend Services & AI Processing -> Next.js Frontend
 
 ## Backend Workflow
 
 1. **Speech-to-Text Input**  
    - Soldier devices capture voice and convert it to raw JSON text.
-   - Data sent via MQTT to the backend.
 
-2. **Data Ingestion & Validation**  
+2. **JSON text into JSON structured table**
+   - locally run LLM converts it into more easy-to-transmit data
+   - sent to MQTT server
+
+3. **Data Ingestion & Validation**  
    - FastAPI backend receives inputs from MQTT broker.
    - Pydantic schemas validate incoming JSON.
 
-3. **AI Processing**  
+4. **AI Processing**  
    - Local LLM transforms messy JSON into structured report packages.
    - Each package tagged with metadata (time, soldier ID, unit hierarchy).
 
-4. **Database Composition**  
+5. **Database Composition**  
    - All raw and structured data stored in SQLite.  
    - Tables link inputs, reports, soldiers, and unit hierarchy.
 
-5. **API Layer**  
+6. **API Layer**  
    - REST endpoints expose soldier data, hierarchy, and reports.  
    - Enables secure queries from frontend and external tools.
 
-6. **Report Generation**  
+7. **Report Generation**  
    - AI-powered backend service produces CASEVAC, SITREP, or EOINCREP.  
    - Reports are stored and made queryable in real time.
 
-7. **Data Delivery to Frontend**  
+8. **Data Delivery to Frontend**  
    - Backend streams updates (via WebSocket or polling).  
    - Frontend dashboard visualizes and organizes all incoming information.
 
