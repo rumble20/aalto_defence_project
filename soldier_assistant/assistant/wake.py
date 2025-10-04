@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 ACCESS_KEY = os.getenv("PICOVOICE_ACCESS_KEY")
-PPN_PATH = "models/Hey-Assistant.ppn"
+PPN_PATH = "models/report.ppn"
 
 porcupine = pvporcupine.create(
     access_key=ACCESS_KEY,

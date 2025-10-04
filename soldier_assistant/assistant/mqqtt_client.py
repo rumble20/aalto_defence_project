@@ -18,7 +18,8 @@ client = mqtt.Client()
 if mqtt_user and mqtt_pass:
     client.username_pw_set(mqtt_user, mqtt_pass)
 
-client.connect(mqtt_host, mqtt_port)
+#client.connect(mqtt_host, mqtt_port)
+client.connect("localhost", 1883, 60)
 client.loop_start()
 
 print("[INFO] MQTT client connected and running...")
