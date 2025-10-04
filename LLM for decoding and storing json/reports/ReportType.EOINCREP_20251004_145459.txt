@@ -1,6 +1,0 @@
-EOINCREP REPORT
-Action: move
-Units Involved: Alpha, Squad, Bravo, Team, HIGH, Zulu, Maintain
-Coordinates: X=123.456, Y=789.012
-Timeframe: immediate
-Priority: Priority.HIGH
