@@ -28,19 +28,34 @@ class ReportType(str, Enum):
     CASEVAC = "CASEVAC"
 
 class MilitaryReportFormatter:
-    def __init__(self, model_name="mosaicml/mpt-7b-instruct", output_dir="reports"):
+    def __init__(self, model_name="microsoft/phi-1_5", output_dir="./reports"):
+        """
+        Initialize the formatter with a specified model.
+        Recommended freely accessible models:
+        - "microsoft/phi-1_5" (default, 1.3B parameters)
+        - "TinyLlama/TinyLlama-1.1B-Chat-v1.0" (1.1B parameters)
+        - "facebook/opt-350m" (350M parameters, very light)
+        """
         self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            torch_dtype=torch.float16,  # Use half precision for efficiency
-            device_map="auto"  # Automatically manage model placement
-        )
-        self.tokenizer.pad_token = self.tokenizer.eos_token
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name,
+                trust_remote_code=True
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                trust_remote_code=True,
+                torch_dtype=torch.float32,  # Use full precision for better compatibility
+                device_map="auto" if torch.cuda.is_available() else None,
+            )
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+        except Exception as e:
+            raise RuntimeError(f"Failed to load model {model_name}. Error: {str(e)}")
+
     def format_eoincrep(self, packet: MilitaryPacket) -> str:
         """
         Format a validated MilitaryPacket into EOINCREP standard report.
