@@ -53,18 +53,21 @@ Soldier Device (Raspberry Pi) → Speech_to_text -> convert into formatted JSON 
 
 ### 1. Setup Environment
 
-bash
 # Activate virtual environment
+
 venv\Scripts\activate  # Windows
 source venv/bin/activate  # Linux/Mac
 
 # Install dependencies (already done)
+
 pip install fastapi uvicorn pydantic paho-mqtt sqlalchemy
 
 ### 2. Initialize Database
+
 python database_setup.py
 
 ### 3. Start Backend Server
+
 python backend.py
 
 # or use the startup script
@@ -77,29 +80,15 @@ API: http://localhost:8000
 Documentation: http://localhost:8000/docs
 
 ### 4. Start Frontend Dashboard
+
 cd mil_dashboard
 npm run dev
 
-# Frontend will be available at: http://localhost:3000
+# Frontend will be available at: 
 
-### 5. (Optional) Start MQTT Broker
-For full functionality, install and start Mosquitto:
+http://localhost:3000
 
-Windows:
-
-Download from https://mosquitto.org/download/
-
-Install and start the service
-
-Linux:
-
-sudo apt install mosquitto mosquitto-clients
-mosquitto -v
-
-### 6. Simulate Soldier Devices
-python soldier_simulator.py
-
-# Database Schema
+## Database Schema
 # Units Table
 Hierarchical military units (Battalion → Company → Platoon → Squad)
 
@@ -166,7 +155,12 @@ Structured Reports: AI-generated military reports with confidence scores
 
 Responsive Design: Works on desktop and mobile devices
 
-## Development Notes
+### Development Notes
+
+VOSK for speech-to-text recognition (tested on Raspberry 4)
+
+Local LLM for lightweight, offline AI processing of JSON data
+
 Built with FastAPI for high-performance backend
 
 SQLite for rapid prototyping (easily upgradeable to PostgreSQL)
@@ -179,19 +173,3 @@ Pydantic for data validation
 
 MQTT for real-time communication
 
-Local LLM for lightweight, offline AI processing
-
-## Hackathon Ready
-This system is designed for rapid deployment and demonstration:
-
-Minimal setup time
-
-Clear backend-to-frontend data flow
-
-Real-time updates
-
-Professional military-themed UI
-
-Complete documentation
-
-Sample data for immediate testing
