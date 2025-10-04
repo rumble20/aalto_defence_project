@@ -111,14 +111,18 @@ def extract_first_balanced_braces(s: str) -> Optional[str]:
 
 
 def heuristic_repair_json(text: str) -> Optional[dict]:
-    """Apply heuristic repairs to common JSON problems and try to parse.
-    This is intentionally conservative: it attempts fixes in several passes.
-    """
+    """Apply heuristic repairs to common JSON problems and try to parse."""
+    if not isinstance(text, str):
+        return None
+        
     t = text.strip()
 
     # 1) Try direct json.loads
     try:
-        return json.loads(t)
+        parsed = json.loads(t)
+        if not isinstance(parsed, dict):
+            parsed = {"data": parsed}
+        return parsed
     except Exception:
         pass
 
@@ -132,7 +136,7 @@ def heuristic_repair_json(text: str) -> Optional[dict]:
     # 3) Basic textual fixes
     # - Replace single quotes with double quotes (naive, but common)
     t2 = t.replace("\"'\"", '"')  # no-op protective
-    t2 = re.sub(r"'([^"]*?)'", r'"\1"', t2)
+    t2 = re.sub(r"'([^\"]*?)'", r'"\1"', t2)
 
     # - Remove trailing commas before } or ]
     t2 = re.sub(r",\s*([}\]])", r"\1", t2)
@@ -163,7 +167,7 @@ def heuristic_repair_json(text: str) -> Optional[dict]:
         except Exception:
             # try repairs on block
             try:
-                return json.loads(re.sub(r"'([^"]*?)'", r'"\1"', block))
+                return json.loads(re.sub(r"'([^']*?)'", r'"\1"', block))
             except Exception:
                 pass
 
@@ -192,7 +196,6 @@ class MilitaryTextEncoder:
     def _init_pipeline(self):
         if self._pipe is not None:
             return
-        # Use seq2seq text2text-generation model (flan-t5 small is CPU-friendly)
         try:
             tokenizer = AutoTokenizer.from_pretrained(self.model_name)
             model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
@@ -202,68 +205,131 @@ class MilitaryTextEncoder:
                 model=model,
                 tokenizer=tokenizer,
                 device=device_map,
+                dtype="auto",  # Add dtype parameter
                 truncation=True,
                 max_length=self.max_length,
             )
         except Exception as e:
             raise RuntimeError(f"Failed to initialize local LLM pipeline: {e}")
 
-    def _llm_extract_json(self, text: str) -> dict:
-        """Use a local seq2seq model to extract structured JSON from free text.
-        The model chosen should be small for CPU usage (flan-t5-small by default).
-        """
-        self._init_pipeline()
+    def _preprocess_text(self, text: str) -> str:
+        """Clean and standardize input text for better LLM processing."""
+        # Convert parentheses coordinates to standard format
+        text = re.sub(r'\((\d+\.?\d*),\s*(\d+\.?\d*)\)', r'{"x": \1, "y": \2}', text)
+        
+        # Convert common time formats
+        text = re.sub(r'\b(\d{4})Z\b', r'\1 Zulu', text)
+        
+        # Normalize priority indicators
+        text = re.sub(r'\b(?:urgent|critical)\b', 'HIGH', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(?:normal|standard)\b', 'MEDIUM', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(?:low|routine)\b', 'LOW', text, flags=re.IGNORECASE)
+        
+        return text
 
+    def _create_json_template(self, text: str) -> dict:
+        """Create a structured JSON template from the input text."""
+        # Extract potential units (words starting with capital letters)
+        units = re.findall(r'\b[A-Z][a-zA-Z]*(?:\s+team)?\b', text)
+        
+        # Extract potential coordinates
+        coords_match = re.search(r'(?:coordinates?|loc|position).*?(?:(?:[-+]?\d*\.?\d+),\s*(?:[-+]?\d*\.?\d+)|\{.*?\})', text, re.IGNORECASE)
+        coords = {"x": 0.0, "y": 0.0}
+        if coords_match:
+            try:
+                coords_text = coords_match.group(0)
+                if '{' in coords_text:
+                    coords = json.loads(re.search(r'\{.*?\}', coords_text).group(0))
+                else:
+                    x, y = map(float, re.findall(r'[-+]?\d*\.?\d+', coords_text)[:2])
+                    coords = {"x": x, "y": y}
+            except Exception:
+                pass
+
+        # Extract priority
+        priority = "MEDIUM"
+        if re.search(r'\b(?:urgent|critical|high)\b', text, re.IGNORECASE):
+            priority = "HIGH"
+        elif re.search(r'\b(?:low|routine)\b', text, re.IGNORECASE):
+            priority = "LOW"
+
+        return {
+            "action": "move",  # default action
+            "target_units": units or ["Unknown"],
+            "coordinates": coords,
+            "timeframe": "immediate",  # default timeframe
+            "priority": priority
+        }
+
+    def _llm_extract_json(self, text: str) -> dict:
+        """Use a local seq2seq model to extract structured JSON from free text."""
+        self._init_pipeline()
+        
+        # Preprocess text and create initial template
+        cleaned_text = self._preprocess_text(text)
+        template = self._create_json_template(cleaned_text)
+        
         prompt = (
-            "Extract a JSON object with ONLY the following fields (no extra keys):\n"
-            "{\n"
-            '  "action": "string",\n'
-            '  "target_units": ["string"],\n'
-            '  "coordinates": {"x": float, "y": float},\n'
-            '  "timeframe": "string",\n'
-            '  "priority": "HIGH|MEDIUM|LOW"\n'
-            "}\n\n"
-            "Output: ONLY valid JSON (no explanation).\n\n"
-            "Text: \n" + text + "\n\nJSON:\n"
+            f"Convert this military message into JSON. Use this template and fix any wrong values:\n"
+            f"{json.dumps(template, indent=2)}\n\n"
+            f"Message:\n{cleaned_text}\n"
+            f"Fixed JSON (output only valid JSON):"
         )
 
-        out = self._pipe(prompt, max_length=self.max_length)
-        generated = out[0]["generated_text"]
-
-        # Extract JSON substring
-        candidate = extract_first_balanced_braces(generated)
-        if candidate is None:
-            # As a fallback, try to find any {...} in the response
-            match = re.search(r"\{.*\}", generated, flags=re.DOTALL)
-            candidate = match.group(0) if match else generated
-
-        # Try to parse and repair if necessary
-        parsed = heuristic_repair_json(candidate)
-        if not parsed:
-            raise ValueError("LLM returned no parsable JSON")
-
-        # Validate via Pydantic
-        validated = MilitaryPacket(**parsed)
-        return validated.dict()
+        best_result = None
+        for _ in range(3):
+            try:
+                out = self._pipe(prompt, max_length=self.max_length)
+                generated = out[0]["generated_text"].strip()
+                
+                # Try to find JSON in the response
+                json_match = extract_first_balanced_braces(generated)
+                if json_match:
+                    parsed = json.loads(json_match)
+                    if isinstance(parsed, dict):
+                        # Validate fields
+                        validated = MilitaryPacket(**parsed)
+                        return validated.model_dump()  # Changed from dict()
+                
+                # If we got here, try to merge with template
+                merged = template.copy()
+                try:
+                    if json_match:
+                        parsed = json.loads(json_match)
+                        if isinstance(parsed, dict):
+                            merged.update(parsed)
+                            validated = MilitaryPacket(**merged)
+                            return validated.model_dump()  # Changed from dict()
+                except Exception:
+                    continue
+                    
+            except Exception:
+                continue
+        
+        # If all attempts failed, try to use the template directly
+        try:
+            return MilitaryPacket(**template).model_dump()  # Changed from dict()
+        except Exception:
+            raise ValueError("Failed to generate valid JSON")
 
     def process_text(self, text: str) -> Dict[str, Any]:
         """Main entry point: try to parse/repair JSON locally first; otherwise use LLM fallback."""
-        # If it looks like JSON, try repair/parse first
-        if is_probably_json(text):
-            parsed = heuristic_repair_json(text)
-            if parsed is not None:
-                try:
-                    validated = MilitaryPacket(**parsed)
-                    return validated.dict()
-                except ValidationError as e:
-                    # If validation fails, we may still attempt LLM extraction
-                    pass
-
-        # If we reach here, use the LLM fallback
         try:
+            # If it looks like JSON, try repair/parse first
+            if is_probably_json(text):
+                parsed = heuristic_repair_json(text)
+                if parsed is not None and isinstance(parsed, dict):
+                    try:
+                        validated = MilitaryPacket(**parsed)
+                        return validated.model_dump()  # Changed from dict()
+                    except ValidationError as e:
+                        # If validation fails, we may still attempt LLM extraction
+                        pass
+
+            # If we reach here, use the LLM fallback
             return self._llm_extract_json(text)
         except Exception as e:
-            return {"error": f"LLM extraction failed: {e}"}
+            return {"error": f"Processing failed: {str(e)}"}
 
     def process_and_format(self, text: str, report_type: ReportType = ReportType.EOINCREP) -> tuple[str, str]:
         data = self.process_text(text)
@@ -309,11 +375,17 @@ class MilitaryTextEncoder:
 if __name__ == "__main__":
     encoder = MilitaryTextEncoder()
 
-    messy_text = """
-    Alpha team needs 2 move quickly!! coordinates are (123.45, 678.90)
-    time: 0600Z tmrw... Bravo & Charlie providing backup
-    THIS IS URGENT/HIGH PRIORITY!!!
+    messy_text = """ Alpha Squad and Bravo Team need to hold position ASAP at coords 123.456, 789.012! 
+    This is HIGH priority - execute at 0800Z tomorrow. Maintain defensive posture
+    and await further orders. DO NOT let anyone through! Command out.
     """
+
+    
+    #"""
+    #Alpha team needs 2 move quickly!! coordinates are (123.45, 678.90)
+    #time: 0600Z tmrw... Bravo & Charlie providing backup
+    #THIS IS URGENT/HIGH PRIORITY!!!
+    #"""
 
     results = encoder.process_and_save_all(messy_text, ReportType.EOINCREP)
     if results.get('status') == 'success':
