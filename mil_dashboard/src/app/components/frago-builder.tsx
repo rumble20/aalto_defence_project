@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -44,6 +44,15 @@ export function FRAGOBuilder({
   });
   const [generatedDoc, setGeneratedDoc] = useState<string>("");
   const [fragoNumber, setFragoNumber] = useState<number | null>(null);
+
+  // Auto-resize textareas when fields change
+  useEffect(() => {
+    const textareas = document.querySelectorAll("textarea");
+    textareas.forEach((textarea) => {
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + "px";
+    });
+  }, [fields]);
 
   const handleSuggest = async () => {
     setLoading(true);
@@ -122,117 +131,135 @@ export function FRAGOBuilder({
   };
 
   return (
-    <div className="space-y-2 text-xs">
+    <div className="space-y-2 text-xs h-full overflow-y-auto">
       <Card className="border-0">
-        <CardHeader className="p-3">
-          <CardTitle className="text-sm font-mono">{unitName}</CardTitle>
-          <CardDescription className="text-xs">
+        <CardHeader className="p-2">
+          <CardTitle className="text-xs font-mono">{unitName}</CardTitle>
+          <CardDescription className="text-[10px]">
             {reports.length} reports
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 p-3 pt-0">
+        <CardContent className="space-y-2 p-2 pt-0">
           <Button
             onClick={handleSuggest}
             disabled={loading || reports.length === 0}
-            className="w-full h-7 text-xs"
+            className="w-full h-6 text-[10px]"
             size="sm"
           >
             {loading ? (
-              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              <Loader2 className="mr-1 h-2 w-2 animate-spin" />
             ) : (
-              <Sparkles className="mr-1 h-3 w-3" />
+              <Sparkles className="mr-1 h-2 w-2" />
             )}
             AI Suggest
           </Button>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div>
-              <Label htmlFor="situation" className="text-xs font-mono">
+              <Label htmlFor="situation" className="text-[10px] font-mono">
                 1. SIT
               </Label>
               <Textarea
                 id="situation"
                 value={fields.situation}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  updateField("situation", e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  updateField("situation", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 placeholder="Enemy/friendly forces..."
-                className="min-h-[50px] mt-1 text-xs"
+                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
+                rows={2}
               />
             </div>
 
             <div>
-              <Label htmlFor="mission" className="text-xs font-mono">
+              <Label htmlFor="mission" className="text-[10px] font-mono">
                 2. MISSION
               </Label>
               <Textarea
                 id="mission"
                 value={fields.mission}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  updateField("mission", e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  updateField("mission", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 placeholder="Task and purpose..."
-                className="min-h-[50px] mt-1 text-xs"
+                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
+                rows={2}
               />
             </div>
 
             <div>
-              <Label htmlFor="execution" className="text-xs font-mono">
+              <Label htmlFor="execution" className="text-[10px] font-mono">
                 3. EXEC
               </Label>
               <Textarea
                 id="execution"
                 value={fields.execution}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  updateField("execution", e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  updateField("execution", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 placeholder="Concept of operations..."
-                className="min-h-[60px] mt-1 text-xs"
+                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
+                rows={3}
               />
             </div>
 
             <div>
-              <Label htmlFor="service_support" className="text-xs font-mono">
+              <Label
+                htmlFor="service_support"
+                className="text-[10px] font-mono"
+              >
                 4. CSS
               </Label>
               <Textarea
                 id="service_support"
                 value={fields.service_support}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  updateField("service_support", e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  updateField("service_support", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 placeholder="Logistics..."
-                className="min-h-[50px] mt-1 text-xs"
+                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
+                rows={2}
               />
             </div>
 
             <div>
-              <Label htmlFor="command_signal" className="text-xs font-mono">
+              <Label htmlFor="command_signal" className="text-[10px] font-mono">
                 5. C2
               </Label>
               <Textarea
                 id="command_signal"
                 value={fields.command_signal}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  updateField("command_signal", e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                  updateField("command_signal", e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 placeholder="Command & signal..."
-                className="min-h-[50px] mt-1 text-xs"
+                className="mt-0.5 text-[10px] leading-tight resize-none overflow-hidden"
+                rows={2}
               />
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <Button
               onClick={handleGenerate}
               disabled={loading || !fields.mission}
-              className="flex-1 h-7 text-xs"
+              className="flex-1 h-6 text-[10px]"
               size="sm"
             >
               {loading ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                <Loader2 className="mr-1 h-2 w-2 animate-spin" />
               ) : (
-                <FileText className="mr-1 h-3 w-3" />
+                <FileText className="mr-1 h-2 w-2" />
               )}
               Generate
             </Button>
@@ -242,9 +269,9 @@ export function FRAGOBuilder({
                 onClick={handleDownload}
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-6 text-[10px]"
               >
-                <Download className="mr-1 h-3 w-3" />
+                <Download className="mr-1 h-2 w-2" />
                 Save
               </Button>
             )}
@@ -254,13 +281,13 @@ export function FRAGOBuilder({
 
       {generatedDoc && (
         <Card className="border-0">
-          <CardHeader className="p-3">
-            <CardTitle className="text-sm font-mono">
+          <CardHeader className="p-2">
+            <CardTitle className="text-xs font-mono">
               FRAGO {fragoNumber?.toString().padStart(4, "0")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <pre className="whitespace-pre-wrap font-mono text-[10px] bg-muted p-2 rounded-lg leading-tight max-h-[300px] overflow-y-auto">
+          <CardContent className="p-2 pt-0">
+            <pre className="whitespace-pre-wrap break-words font-mono text-[9px] bg-muted p-2 rounded-lg leading-[1.3] overflow-x-hidden">
               {generatedDoc}
             </pre>
           </CardContent>
