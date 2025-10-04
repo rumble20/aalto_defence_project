@@ -1,8 +1,10 @@
 from assistant.sst import clean_command, listen_once
 from assistant.parser import build_parser, parser_text
-from assistant.mqqtt_client import publish_command
+from assistant.mqqtt_client import publish_command, publish_heartbeat
 from assistant.wake import wait_for_wake_word, cleanup
 import json
+import time
+import threading
 
 def handle_command(text, parser, action_map=None):
     print(f"[COMMAND] Raw: {text}")
@@ -24,8 +26,22 @@ def handle_command(text, parser, action_map=None):
     print(f"[COMMAND] Published payload: {json_payload}")      
 
 
+def heartbeat_loop():
+    """Send heartbeat every 30 seconds."""
+    while True:
+        time.sleep(30)
+        publish_heartbeat()
+
 def main():
     parser, ACTION_MAP = build_parser()
+    
+    # Start heartbeat thread
+    heartbeat_thread = threading.Thread(target=heartbeat_loop, daemon=True)
+    heartbeat_thread.start()
+    
+    # Send initial heartbeat
+    publish_heartbeat()
+    
     try:
         while True:
             wait_for_wake_word()
