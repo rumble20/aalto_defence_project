@@ -63,6 +63,14 @@ except Exception:
         coordinates: Coordinates
         timeframe: str
         priority: Priority
+        soldier_id: Optional[str] = Field(default="UNKNOWN")
+        transmission_time: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
+        received_time: Optional[str] = Field(default_factory=lambda: datetime.now().isoformat())
+
+        class Config:
+            json_encoders = {
+                datetime: lambda v: v.isoformat()
+            }
 
     class ReportType(str, Enum):
         EOINCREP = "EOINCREP"
@@ -216,9 +224,14 @@ class MilitaryTextEncoder:
         """Clean and standardize input text for better LLM processing."""
         # Convert parentheses coordinates to standard format
         text = re.sub(r'\((\d+\.?\d*),\s*(\d+\.?\d*)\)', r'{"x": \1, "y": \2}', text)
-        
-        # Convert common time formats
         text = re.sub(r'\b(\d{4})Z\b', r'\1 Zulu', text)
+        
+        # Filter out common words that shouldn't be units
+        common_words = {'asap', 'this', 'that', 'command', 'out', 'not', 'do', 'the', 'and', 'need', 'needs'}
+        
+        # Replace common military time expressions
+        text = re.sub(r'\basap\b', 'immediately', text, flags=re.IGNORECASE)
+        text = re.sub(r'\bsoon\b', 'within 1 hour', text, flags=re.IGNORECASE)
         
         # Normalize priority indicators
         text = re.sub(r'\b(?:urgent|critical)\b', 'HIGH', text, flags=re.IGNORECASE)
@@ -229,8 +242,10 @@ class MilitaryTextEncoder:
 
     def _create_json_template(self, text: str) -> dict:
         """Create a structured JSON template from the input text."""
-        # Extract potential units (words starting with capital letters)
-        units = re.findall(r'\b[A-Z][a-zA-Z]*(?:\s+team)?\b', text)
+        # Extract potential units (words starting with capital letters, excluding common words)
+        common_words = {'asap', 'this', 'that', 'command', 'out', 'not', 'do', 'the', 'and', 'need', 'needs'}
+        units = [unit for unit in re.findall(r'\b[A-Z][a-zA-Z]*(?:\s+team)?\b', text) 
+                if unit.lower() not in common_words]
         
         # Extract potential coordinates
         coords_match = re.search(r'(?:coordinates?|loc|position).*?(?:(?:[-+]?\d*\.?\d+),\s*(?:[-+]?\d*\.?\d+)|\{.*?\})', text, re.IGNORECASE)
@@ -253,12 +268,27 @@ class MilitaryTextEncoder:
         elif re.search(r'\b(?:low|routine)\b', text, re.IGNORECASE):
             priority = "LOW"
 
+        # Extract timeframe
+        timeframe = "immediate"
+        time_match = re.search(r'\b(\d{4})\s*Z\b', text)
+        if time_match:
+            timeframe = f"{time_match.group(1)}Z"
+
+        # Try to extract soldier ID (if present in format like ID:123 or soldier:ABC)
+        soldier_id = "UNKNOWN"
+        id_match = re.search(r'\b(?:ID|soldier)[:]\s*([A-Z0-9]+)\b', text, re.IGNORECASE)
+        if id_match:
+            soldier_id = id_match.group(1)
+
         return {
-            "action": "move",  # default action
+            "action": "move",
             "target_units": units or ["Unknown"],
             "coordinates": coords,
-            "timeframe": "immediate",  # default timeframe
-            "priority": priority
+            "timeframe": timeframe,
+            "priority": priority,
+            "soldier_id": soldier_id,
+            "transmission_time": datetime.now().isoformat(),
+            "received_time": datetime.now().isoformat()
         }
 
     def _llm_extract_json(self, text: str) -> dict:
@@ -320,16 +350,23 @@ class MilitaryTextEncoder:
                 parsed = heuristic_repair_json(text)
                 if parsed is not None and isinstance(parsed, dict):
                     try:
+                        # Add timestamps if not present
+                        if 'transmission_time' not in parsed:
+                            parsed['transmission_time'] = datetime.now().isoformat()
+                        if 'received_time' not in parsed:
+                            parsed['received_time'] = datetime.now().isoformat()
+                        if 'soldier_id' not in parsed:
+                            parsed['soldier_id'] = "UNKNOWN"
+                        
                         validated = MilitaryPacket(**parsed)
-                        return validated.model_dump()  # Changed from dict()
-                    except ValidationError as e:
-                        # If validation fails, we may still attempt LLM extraction
+                        return validated.model_dump()
+                    except ValidationError:
                         pass
-
-            # If we reach here, use the LLM fallback
-            return self._llm_extract_json(text)
         except Exception as e:
             return {"error": f"Processing failed: {str(e)}"}
+        # If we reach here, use the LLM fallback
+        return self._llm_extract_json(text)
+        
 
     def process_and_format(self, text: str, report_type: ReportType = ReportType.EOINCREP) -> tuple[str, str]:
         data = self.process_text(text)
@@ -375,23 +412,19 @@ class MilitaryTextEncoder:
 if __name__ == "__main__":
     encoder = MilitaryTextEncoder()
 
-    messy_text = """ Alpha Squad and Bravo Team need to hold position ASAP at coords 123.456, 789.012! 
+    messy_text = """ID:A123 Alpha Squad and Bravo Team need to hold position ASAP at coords 123.456, 789.012! 
     This is HIGH priority - execute at 0800Z tomorrow. Maintain defensive posture
     and await further orders. DO NOT let anyone through! Command out.
     """
-
-    
-    #"""
-    #Alpha team needs 2 move quickly!! coordinates are (123.45, 678.90)
-    #time: 0600Z tmrw... Bravo & Charlie providing backup
-    #THIS IS URGENT/HIGH PRIORITY!!!
-    #"""
 
     results = encoder.process_and_save_all(messy_text, ReportType.EOINCREP)
     if results.get('status') == 'success':
         print("Processing completed successfully!")
         print(f"Saved JSON to: {results['json_path']}")
         print(f"Saved report to: {results['report_path']}")
-        print("Report content:\n", results['report_content'])
+        print("\nProcessed data:")
+        with open(results['json_path'], 'r') as f:
+            data = json.load(f)
+            print(json.dumps(data, indent=2))
     else:
         print("Error:", results.get('error'))
