@@ -57,7 +57,7 @@ export function HierarchyTree({
     try {
       const response = await fetch("http://localhost:8000/hierarchy");
       const data = await response.json();
-      
+
       // Build proper hierarchy from flat list
       const hierarchy = buildHierarchy(data.hierarchy || []);
       setHierarchyData(hierarchy);
@@ -79,16 +79,16 @@ export function HierarchyTree({
     const rootUnits: Unit[] = [];
 
     // First pass: create map of all units
-    flatUnits.forEach(unit => {
+    flatUnits.forEach((unit) => {
       unitsMap.set(unit.unit_id, {
         ...unit,
         soldiers: unit.soldiers || [],
-        subunits: []
+        subunits: [],
       });
     });
 
     // Second pass: build parent-child relationships
-    flatUnits.forEach(unit => {
+    flatUnits.forEach((unit) => {
       const unitData = unitsMap.get(unit.unit_id);
       if (!unitData) return;
 
@@ -132,7 +132,8 @@ export function HierarchyTree({
   const renderUnit = (unit: Unit, depth: number = 0) => {
     const isExpanded = expandedNodes.has(unit.unit_id);
     const isSelected = selectedNodeId === unit.unit_id;
-    const hasChildren = (unit.soldiers?.length || 0) > 0 || (unit.subunits?.length || 0) > 0;
+    const hasChildren =
+      (unit.soldiers?.length || 0) > 0 || (unit.subunits?.length || 0) > 0;
 
     return (
       <div key={unit.unit_id} className="select-none">

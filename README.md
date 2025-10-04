@@ -1,132 +1,155 @@
-# 🎖️ A.U.R.A : Audio Understanding and Reconnassaince Automation
+# 🎖️ A.U.R.A : Audio Understanding and Reconnaissance Automation
 
-A comprehensive military report management system with real-time communication, text-to-speech interpretation, LLM data encoding, web visualization of database, AI automatic reporting summary and global access capabilities.
+A comprehensive military tactical operations system featuring:
+
+- **Real-time battlefield reporting** with MQTT communication
+- **AI-powered analysis** using Google Gemini for tactical insights
+- **Interactive dashboard** with military hierarchy visualization
+- **Automated report generation** (CASEVAC, EOINCREP, FRAGO, SITREP)
+- **Smart suggestions** and notifications for commanders
+- **Speech-to-text** soldier assistant for hands-free reporting
 
 ## 📁 Project Structure
 
 ```
 aalto_defence_project/
-├── 📁 docs/
-├── 📁 tests/                         # Test files
-├── 📁 scripts/                       # Automation scripts
-├── 📁 tools/                         # Utility tools
-├── 📁 ngrok/                         # ngrok configuration
-├── 📁 mil_dashboard/                 # Main Dashboard (Next.js)
-├── 📁 ui-for-reports/               # Reports UI (Next.js)
-├── 📁 venv/                         # Python virtual environment
-├── 🐍 backend.py                     # FastAPI backend server
-├── 🗄️ database_schema.sql            # Database schema
-├── 🗄️ database_setup.py              # Database initialization
-├── 🗄️ military_hierarchy.db          # SQLite database
+├── backend/                          # Backend application
+│   ├── backend.py                   # FastAPI server
+│   └── requirements.txt             # Python dependencies
+├── database/                         # Database files
+│   ├── schema.sql                   # Database schema
+│   ├── setup.py                     # Initialization script
+│   ├── military_hierarchy.db        # SQLite database
+│   └── migrations/                  # SQL migration scripts
+│       ├── add_frago_table.sql
+│       └── add_suggestions_table.sql
+├── mil_dashboard/                    # Next.js dashboard frontend
+│   ├── src/app/                     # App pages
+│   ├── src/components/              # React components
+│   └── src/lib/                     # Utilities
+├── soldier_assistant/                # Raspberry Pi voice assistant
+│   └── RASPBERRY_PI_DEPLOYMENT.md
+├── Decoding_and_storing_LLM/        # LLM data encoding utilities
+├── scripts/                          # Utility scripts
+│   ├── populate_reports.py
+│   ├── send_test_report.py
+│   └── clear_reports.py
+├── tests/                            # Test files
+│   ├── test_backend.py
+│   ├── test_ai_suggestions.py
+│   ├── test_casevac_*.py
+│   └── test_soldier_integration.py
+├── docs/                             # Documentation
+│   ├── API_DOCUMENTATION.md
+│   ├── SCHEMA_DOCUMENTATION.md
+│   └── AI_PROMPTS_AND_CONCEPT.md   # AI prompts & project concept
+├── tools/                            # Additional utilities
+└── .venv/                            # Python virtual environment
 ```
-For the web visualization and AI summary
-
-```
-aalto_defence_project/
-├── 📁 soldier_assistant/
-```
-For the speech-to-text recognition, developed to be tested on a Raspberry Pi
-
-```
-aalto_defence_project/
-├── 📁 Decoding_and_storing_LLM/
-├── 📁 processed_data/
-```
-For the LLM text encoding in json format to be sent over low bandwidth capabilities
 
 ## 🚀 Quick Start
 
-### 1. **Start the System**
+### Prerequisites
+
+- Python 3.8+ with virtual environment
+- Node.js 18+ and npm
+- SQLite3
+
+### 1. **Setup Backend**
+
 ```bash
-# Run the organized setup script
-scripts\fixed_setup.bat
+# Activate virtual environment
+.venv\Scripts\activate
+
+# Start backend server
+python backend.py
 ```
 
-### 2. **Check Status**
+The backend will run on `http://localhost:8000`
+
+### 2. **Setup Frontend**
+
 ```bash
-# Check if all services are running
-tools\check_status.py
+# Navigate to dashboard
+cd mil_dashboard
+
+# Install dependencies (first time only)
+npm install --legacy-peer-deps
+
+# Start frontend
+npm run dev
 ```
 
-### 3. **Access Your System**
-- **Local URLs:**
-  - Backend API: `http://localhost:8000`
-  - Main Dashboard: `http://localhost:3000`
-  - Reports UI: `http://localhost:3001`
+The dashboard will run on `http://localhost:3000` (or 3001 if 3000 is in use)
 
-- **Global URLs:** Check ngrok windows for public URLs
+### 3. **Access the System**
 
-## 🌍 Global Access
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Dashboard**: http://localhost:3000
 
-### **For External Users:**
-1. **Check ngrok windows** for public URLs
-2. **Share URLs** with team members
-3. **Access from anywhere** in the world
+## 📋 Features
 
-### **Example URLs:**
-- Backend API: `https://abc123.ngrok-free.dev`
-- Main Dashboard: `https://def456.ngrok-free.dev`
-- Reports UI: `https://ghi789.ngrok-free.dev`
+### Report Types
+
+- **CASEVAC**: Casualty evacuation requests with AI-assisted field completion
+- **EOINCREP**: Enemy observation and intelligence reports
+- **FRAGO**: Fragmentary orders for tactical changes
+- **SITREP**: Situation reports
+
+### AI Capabilities
+
+- **Smart Suggestions**: AI analyzes recent reports to suggest field values
+- **Chat Analysis**: Ask questions about reports and get tactical insights
+- **Auto-fill**: Intelligent completion of report forms based on context
+
+### Real-time Communication
+
+- **MQTT Integration**: Real-time report delivery from field units
+- **Live Updates**: Dashboard updates automatically as new reports arrive
+- **Notifications**: Smart alerts for critical situations
 
 ## 🛠️ Development
 
-### **Backend API (FastAPI)**
-- **File:** `backend.py`
-- **Port:** 8000
-- **Features:** REST API, MQTT integration, real-time data
+### Backend (FastAPI)
 
-### **Main Dashboard (Next.js)**
-- **Directory:** `mil_dashboard/`
-- **Port:** 3000
-- **Features:** Military hierarchy visualization
+- **File**: `backend.py`
+- **Port**: 8000
+- **Tech**: FastAPI, SQLite, MQTT, Google Gemini AI
 
-### **Reports UI (Next.js)**
-- **Directory:** `ui-for-reports/frontend/`
-- **Port:** 3001
-- **Features:** Report generation and management
+### Frontend (Next.js)
 
-## 📊 Database
+- **Directory**: `mil_dashboard/`
+- **Port**: 3000
+- **Tech**: Next.js 15, React 19, TailwindCSS, shadcn/ui
 
-### **Schema**
-- **File:** `database_schema.sql`
-- **Database:** `military_hierarchy.db` (SQLite)
+### Database
 
-### **Setup**
+- **Type**: SQLite
+- **File**: `military_hierarchy.db`
+- **Schema**: See `database_schema.sql`
+
+## 📚 Documentation
+
+- **API Documentation**: `docs/API_DOCUMENTATION.md`
+- **Database Schema**: `docs/SCHEMA_DOCUMENTATION.md`
+- **Project Structure**: `PROJECT_STRUCTURE.md`
+- **Raspberry Pi Setup**: `soldier_assistant/RASPBERRY_PI_DEPLOYMENT.md`
+
+## 🧪 Testing
+
 ```bash
-# Initialize database
-python database_setup.py
+# Run backend tests
+python tests/test_backend.py
+
+# Test soldier integration
+python test_soldier_integration.py
 ```
 
-## 🌐 Network Configuration
+## 📝 License
 
-### **Local Access**
-- **Backend API:** `http://localhost:8000`
-- **Main Dashboard:** `http://localhost:3000`
-- **Reports UI:** `http://localhost:3001`
-
-### **Global Access**
-- **ngrok tunnels** provide global URLs
-- **Check ngrok windows** for public URLs
-- **Share URLs** with team members
-
-📝 License
-
-This project is licensed, see the `LICENSE` file for details.
+This project is for educational purposes.
 
 ---
 
-## 🎯 **Quick Commands**
-
-```bash
-# Start everything
-scripts\fixed_setup.bat
-
-# Check status
-tools\check_status.py
-
-# Test API
-tests\test_api.py
-
-# View documentation
-docs\API_DOCUMENTATION.md
-```
+**Built for Aalto University Defence Project**
