@@ -1,0 +1,21 @@
+Report type: ReportType.EOINCREP
+{
+  "action": "hold",
+  "target_units": [
+    "Alpha Squad",
+    "Bravo Team"
+  ],
+  "coordinates": {
+    "x": 123.456,
+    "y": 789.012
+  },
+  "timeframe": "0800Z (tomorrow)",
+  "priority": "HIGH",
+  "soldier_id": "A123",
+  "radio_call_sign": "EAGLE1",
+  "extras": {
+    "mission_id": "OP45"
+  },
+  "transmission_time": "2025-10-04T20:59:33.144273",
+  "received_time": "2025-10-04T20:59:33.144273"
+}

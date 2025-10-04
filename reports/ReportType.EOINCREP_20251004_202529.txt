@@ -1,0 +1,6 @@
+EOINCREP REPORT
+Action: move
+Units Involved: ID, Alpha, Squad, Bravo, Team, HIGH, Zulu, Call, Sign, MissionID, Objective, Hold
+Coordinates: X=0.0, Y=0.0
+Timeframe: immediate
+Priority: Priority.HIGH
