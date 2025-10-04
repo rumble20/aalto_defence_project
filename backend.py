@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 # Configure Gemini API
 GEMINI_API_KEY = "AIzaSyB2LVUXt2a9nMCpJwGJWen4_EECudv9u_c"
 genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel('gemini-pro')
+# Use gemini-2.0-flash-exp - fast and supports latest features
+gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
 app = FastAPI(title="Military Hierarchy Backend", version="1.0.0")
 
@@ -343,57 +344,69 @@ async def ai_chat(chat_request: ChatMessage):
         node = context.get("node", {})
         reports = context.get("reports", [])
         
+        # Log what we received for debugging
+        logger.info(f"AI Chat request - Node: {node.get('name')}, Reports count: {len(reports)}")
+        if reports and len(reports) > 0:
+            logger.info(f"First report sample: {reports[0]}")
+        
         # Build a response based on the message and reports
         if not reports:
             response = f"I don't have any reports available for {node.get('name', 'this node')}. Once reports are generated, I can help analyze them."
         else:
-            # Prepare context for Gemini
             report_count = len(reports)
             
-            # Build a comprehensive context string
-            context_str = f"You are a military intelligence analyst AI assistant. You are analyzing reports for {node.get('name', 'a military unit')}.\n\n"
-            context_str += f"Total Reports: {report_count}\n\n"
+            # Build a simple, direct prompt with all report data
+            prompt = f"""You are a military intelligence analyst AI. Analyze these battlefield reports and answer the user's question.
+
+Node: {node.get('name', 'Unknown')}
+User Question: {message}
+
+Reports ({report_count} total):
+"""
             
-            # Summarize reports by type
-            report_types = {}
-            for report in reports:
-                report_type = report.get("report_type", "UNKNOWN")
-                report_types[report_type] = report_types.get(report_type, 0) + 1
-            
-            context_str += "Report Summary:\n"
-            for rtype, count in report_types.items():
-                context_str += f"- {rtype}: {count} reports\n"
-            
-            # Add detailed report data (limit to recent 10 to avoid token limits)
-            context_str += "\n\nRecent Report Details:\n"
-            for i, report in enumerate(reports[:10], 1):
+            # Add all reports with full details (limit to 50 to avoid token overload)
+            for i, report in enumerate(reports[:50], 1):
                 try:
-                    structured = json.loads(report.get("structured_json", "{}")) if isinstance(report.get("structured_json"), str) else report.get("structured_json", {})
-                    context_str += f"\n{i}. {report.get('report_type', 'UNKNOWN')} Report:\n"
-                    context_str += f"   Time: {report.get('timestamp', 'unknown')}\n"
-                    context_str += f"   From: {report.get('soldier_name', 'unknown')}\n"
-                    context_str += f"   Details: {json.dumps(structured, indent=2)}\n"
+                    # Handle both original backend format and transformed frontend format
+                    report_type = report.get('report_type') or report.get('type', 'UNKNOWN')
+                    soldier_name = report.get('soldier_name') or report.get('from', 'Unknown')
+                    timestamp = report.get('timestamp') or report.get('time', 'unknown')
+                    
+                    # Get structured data - could be in 'structured_json' or 'data' field
+                    if 'structured_json' in report:
+                        structured = json.loads(report.get("structured_json", "{}")) if isinstance(report.get("structured_json"), str) else report.get("structured_json", {})
+                    else:
+                        structured = report.get('data', {})
+                    
+                    prompt += f"\n{i}. [{report_type}] from {soldier_name} at {timestamp}\n"
+                    prompt += f"   Data: {json.dumps(structured)}\n"
                 except Exception as e:
                     logger.error(f"Error parsing report {i}: {e}")
+                    logger.error(f"Report structure: {report}")
                     continue
             
-            if report_count > 10:
-                context_str += f"\n(... and {report_count - 10} more reports)\n"
+            if report_count > 50:
+                prompt += f"\n... and {report_count - 50} more reports (showing first 50)\n"
             
-            # Build the full prompt
-            prompt = f"{context_str}\n\nUser Question: {message}\n\nProvide a clear, concise military intelligence analysis based on the reports above. Use appropriate military terminology and focus on actionable insights."
+            prompt += "\n\nProvide a direct, clear answer using military terminology. Be concise and actionable."
             
             try:
-                # Call Gemini API
-                gemini_response = gemini_model.generate_content(prompt)
+                # Call Gemini API with safety settings to avoid blocks
+                gemini_response = gemini_model.generate_content(
+                    prompt,
+                    safety_settings={
+                        'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE',
+                        'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE',
+                        'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE',
+                        'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE',
+                    }
+                )
                 response = gemini_response.text
+                logger.info(f"Gemini API success: Generated response for {report_count} reports")
             except Exception as e:
                 logger.error(f"Gemini API error: {e}")
-                # Fallback to rule-based if Gemini fails
-                response = f"I'm analyzing {report_count} reports but encountered an issue with the AI service. Here's what I can tell you:\n\n"
-                type_summary = ", ".join([f"{count} {rtype}" for rtype, count in report_types.items()])
-                response += f"Report types: {type_summary}\n\n"
-                response += "Please try rephrasing your question or contact support if the issue persists."
+                # Simple fallback without confusing prompts
+                response = f"Error: Unable to connect to AI service. Raw data: {report_count} reports available from {node.get('name')}. Please try again."
         
         return {
             "response": response,
