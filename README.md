@@ -1,175 +1,267 @@
-# Military Hierarchy Database System
+# 🎖️ Military Hierarchy Management System
 
-A hackathon-ready system for military communication. Starts with speech-to-text recognition, raw json text gets converted through a local run LLM into structured json text packages for easy delivering of information at low power. Packages which have arrived to base station get composed into a database, from which both backend services and a frontend system provide real-time monitoring, analytics, and AI-powered report generation.
+A comprehensive military hierarchy management system with real-time communication, reporting, and global access capabilities.
 
-## Features
+## 📁 Project Structure
 
-- **Hierarchical Military Database**: Units (Battalion → Company → Platoon → Squad) with soldier management
-- **Real-time MQTT Communication**: Soldier devices send voice inputs via MQTT
-- **Backend AI Processing**: Local LLM converts raw JSON into structured military reports (CASEVAC, EOINCREP, SITREP)
-- **AI Report Generation**: Automated military-grade reports with confidence scores
-- **Modern Web Dashboard**: Next.js frontend with real-time data visualization
-- **Complete History Tracking**: All raw inputs and processed reports stored permanently
+```
+aalto_defence_project/
+├── 📁 docs/                          # Documentation
+│   ├── API_DOCUMENTATION.md         # Complete API reference
+│   ├── NETWORK_SETUP.md             # Network configuration guide
+│   ├── NGROK_SETUP_INSTRUCTIONS.md  # ngrok setup guide
+│   ├── FRIEND_ACCESS_GUIDE.md       # External access guide
+│   └── ...                          # Other documentation
+│
+├── 📁 tests/                         # Test files
+│   ├── test_api.py                  # API endpoint tests
+│   ├── test_network_access.py       # Network connectivity tests
+│   ├── test_tunnel_access.py        # Tunnel connectivity tests
+│   └── ...                          # Other test files
+│
+├── 📁 scripts/                       # Automation scripts
+│   ├── start_all.bat                # Start all services
+│   ├── fixed_setup.bat              # Fixed setup script
+│   ├── setup_ngrok.bat              # ngrok setup
+│   └── ...                          # Other scripts
+│
+├── 📁 tools/                         # Utility tools
+│   ├── check_status.py              # System status checker
+│   ├── validate_schema.py            # Database validation
+│   ├── soldier_simulator.py         # Soldier data simulator
+│   └── ...                          # Other utilities
+│
+├── 📁 ngrok/                         # ngrok configuration
+│   ├── ngrok.exe                     # ngrok executable
+│   ├── ngrok.yml                     # ngrok configuration
+│   └── ngrok.zip                     # ngrok archive
+│
+├── 📁 mil_dashboard/                 # Main Dashboard (Next.js)
+│   └── ...                          # Dashboard files
+│
+├── 📁 ui-for-reports/               # Reports UI (Next.js)
+│   └── frontend/                    # Reports frontend
+│
+├── 📁 venv/                         # Python virtual environment
+│
+├── 🐍 backend.py                     # FastAPI backend server
+├── 🗄️ database_schema.sql            # Database schema
+├── 🗄️ database_setup.py              # Database initialization
+├── 🗄️ military_hierarchy.db          # SQLite database
+└── 📄 README.md                      # This file
+```
 
-## System Architecture
+## 🚀 Quick Start
 
-Soldier Device (Raspberry Pi) → Speech_to_text -> convert into formatted JSON through AI interpreting -> MQTT → FastAPI Backend ->
-→ SQLite Database -> Backend Services & AI Processing -> Next.js Frontend
+### 1. **Start the System**
+```bash
+# Run the organized setup script
+scripts\fixed_setup.bat
+```
 
-## Backend Workflow
+### 2. **Check Status**
+```bash
+# Check if all services are running
+tools\check_status.py
+```
 
-1. **Speech-to-Text Input**  
-   - Soldier devices capture voice and convert it to raw JSON text.
+### 3. **Access Your System**
+- **Local URLs:**
+  - Backend API: `http://localhost:8000`
+  - Main Dashboard: `http://localhost:3000`
+  - Reports UI: `http://localhost:3001`
 
-2. **JSON text into JSON structured table**
-   - locally run LLM converts it into more easy-to-transmit data
-   - sent to MQTT server
+- **Global URLs:** Check ngrok windows for public URLs
 
-3. **Data Ingestion & Validation**  
-   - FastAPI backend receives inputs from MQTT broker.
-   - Pydantic schemas validate incoming JSON.
+## 🌍 Global Access
 
-4. **AI Processing**  
-   - Local LLM transforms messy JSON into structured report packages.
-   - Each package tagged with metadata (time, soldier ID, unit hierarchy).
+### **For External Users:**
+1. **Check ngrok windows** for public URLs
+2. **Share URLs** with team members
+3. **Access from anywhere** in the world
 
-5. **Database Composition**  
-   - All raw and structured data stored in SQLite.  
-   - Tables link inputs, reports, soldiers, and unit hierarchy.
+### **Example URLs:**
+- Backend API: `https://abc123.ngrok-free.dev`
+- Main Dashboard: `https://def456.ngrok-free.dev`
+- Reports UI: `https://ghi789.ngrok-free.dev`
 
-6. **API Layer**  
-   - REST endpoints expose soldier data, hierarchy, and reports.  
-   - Enables secure queries from frontend and external tools.
+## 🛠️ Development
 
-7. **Report Generation**  
-   - AI-powered backend service produces CASEVAC, SITREP, or EOINCREP.  
-   - Reports are stored and made queryable in real time.
+### **Backend API (FastAPI)**
+- **File:** `backend.py`
+- **Port:** 8000
+- **Features:** REST API, MQTT integration, real-time data
 
-8. **Data Delivery to Frontend**  
-   - Backend streams updates (via WebSocket or polling).  
-   - Frontend dashboard visualizes and organizes all incoming information.
+### **Main Dashboard (Next.js)**
+- **Directory:** `mil_dashboard/`
+- **Port:** 3000
+- **Features:** Military hierarchy visualization
 
-## Quick Start
+### **Reports UI (Next.js)**
+- **Directory:** `ui-for-reports/frontend/`
+- **Port:** 3001
+- **Features:** Report generation and management
 
-### 1. Setup Environment
+## 📚 Documentation
 
-# Activate virtual environment
+### **API Documentation**
+- **File:** `docs/API_DOCUMENTATION.md`
+- **Live Docs:** `http://localhost:8000/docs`
 
-venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
+### **Network Setup**
+- **File:** `docs/NETWORK_SETUP.md`
+- **Covers:** Local network access, firewall configuration
 
-# Install dependencies (already done)
+### **ngrok Setup**
+- **File:** `docs/NGROK_SETUP_INSTRUCTIONS.md`
+- **Covers:** Global access via ngrok tunnels
 
-pip install fastapi uvicorn pydantic paho-mqtt sqlalchemy
+## 🧪 Testing
 
-### 2. Initialize Database
+### **Run Tests**
+```bash
+# API tests
+tests\test_api.py
 
+# Network tests
+tests\test_network_access.py
+
+# Tunnel tests
+tests\test_tunnel_access.py
+```
+
+### **System Status**
+```bash
+# Check all services
+tools\check_status.py
+
+# Validate database
+tools\validate_schema.py
+```
+
+## 🔧 Scripts
+
+### **Start Services**
+```bash
+# Start everything
+scripts\start_all.bat
+
+# Fixed setup (recommended)
+scripts\fixed_setup.bat
+```
+
+### **ngrok Setup**
+```bash
+# Setup ngrok
+scripts\setup_ngrok.bat
+
+# Start with ngrok
+scripts\start_with_ngrok.bat
+```
+
+## 🛠️ Tools
+
+### **Status Monitoring**
+- **`tools/check_status.py`** - System health check
+- **`tools/simple_status.py`** - Quick status check
+
+### **Data Management**
+- **`tools/validate_schema.py`** - Database validation
+- **`tools/soldier_simulator.py`** - Test data generation
+
+### **API Testing**
+- **`tools/api_data_examples.py`** - API usage examples
+- **`tools/api_test_form.html`** - Web-based API testing
+
+## 📊 Database
+
+### **Schema**
+- **File:** `database_schema.sql`
+- **Database:** `military_hierarchy.db` (SQLite)
+
+### **Setup**
+```bash
+# Initialize database
 python database_setup.py
+```
 
-### 3. Start Backend Server
+## 🌐 Network Configuration
 
-python backend.py
+### **Local Access**
+- **Backend API:** `http://localhost:8000`
+- **Main Dashboard:** `http://localhost:3000`
+- **Reports UI:** `http://localhost:3001`
 
-# or use the startup script
-python start_system.py
+### **Global Access**
+- **ngrok tunnels** provide global URLs
+- **Check ngrok windows** for public URLs
+- **Share URLs** with team members
 
-# Backend will be available at:
+## 🚨 Troubleshooting
 
-API: http://localhost:8000
+### **Services Not Starting**
+```bash
+# Check status
+tools\check_status.py
 
-Documentation: http://localhost:8000/docs
+# Restart services
+scripts\fixed_setup.bat
+```
 
-### 4. Start Frontend Dashboard
+### **Network Issues**
+```bash
+# Test network access
+tests\test_network_access.py
 
-cd mil_dashboard
-npm run dev
+# Troubleshoot connectivity
+tests\troubleshoot_network_access.py
+```
 
-# Frontend will be available at: 
+### **ngrok Issues**
+```bash
+# Test tunnel access
+tests\test_tunnel_access.py
 
-http://localhost:3000
+# Check ngrok configuration
+docs\NGROK_SETUP_INSTRUCTIONS.md
+```
 
-## Database Schema
-# Units Table
-Hierarchical military units (Battalion → Company → Platoon → Squad)
+## 📝 License
 
-Supports recursive subunit queries
+This project is licensed under the MIT License - see the `LICENSE` file for details.
 
-# Soldiers Table
-Individual soldier metadata (name, rank, unit assignment, device ID)
+## 🤝 Contributing
 
-# Raw Inputs Table
-Complete history of all voice/text inputs from soldiers
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Make your changes**
+4. **Test thoroughly**
+5. **Submit a pull request**
 
-Timestamped and linked to soldier devices
+## 📞 Support
 
-# Reports Table
-AI-generated structured reports
+For issues and questions:
+1. **Check the documentation** in `docs/`
+2. **Run diagnostic tools** in `tools/`
+3. **Test connectivity** with `tests/`
+4. **Review setup guides** in `docs/`
 
-JSON format with confidence scores
+---
 
-Linked to both soldiers and units
+## 🎯 **Quick Commands**
 
-# API Endpoints
-GET /soldiers - List all soldiers
+```bash
+# Start everything
+scripts\fixed_setup.bat
 
-GET /soldiers/{id}/raw_inputs - Get soldier's voice inputs
+# Check status
+tools\check_status.py
 
-GET /soldiers/{id}/reports - Get soldier's structured reports
+# Test API
+tests\test_api.py
 
-GET /reports - Get all reports
+# View documentation
+docs\API_DOCUMENTATION.md
+```
 
-GET /hierarchy - Get complete military hierarchy
-
-POST /soldiers/{id}/reports - Create new report
-
-# MQTT Topics
-soldiers/inputs - Voice inputs from soldier devices
-
-soldiers/heartbeat - Device status updates
-
-# Sample Data
-The system comes with sample military hierarchy data:
-
-1st Infantry Battalion
-
-Alpha Company
-
-1st Platoon (Lt. John Smith)
-
-1st Squad (Sgt. Mike Johnson, Pvt. David Wilson)
-
-2nd Squad (Cpl. Sarah Brown)
-
-2nd Platoon (Sgt. Lisa Garcia)
-
-Bravo Company (Capt. Tom Davis)
-
-## Frontend Features
-Real-time Dashboard: Live monitoring of soldier communications
-
-Soldier Selection: Browse individual soldiers and their data
-
-Raw Input Display: View original voice transcriptions
-
-Structured Reports: AI-generated military reports with confidence scores
-
-Responsive Design: Works on desktop and mobile devices
-
-### Development Notes
-
-VOSK for speech-to-text recognition (tested on Raspberry 4)
-
-Local LLM for lightweight, offline AI processing of JSON data
-
-Built with FastAPI for high-performance backend
-
-SQLite for rapid prototyping (easily upgradeable to PostgreSQL)
-
-Next.js with TypeScript for modern frontend
-
-Tailwind CSS for responsive design
-
-Pydantic for data validation
-
-MQTT for real-time communication
-
+**Your Military Hierarchy System is now organized and ready for global deployment!** 🌍

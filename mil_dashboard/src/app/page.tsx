@@ -9,7 +9,15 @@ import { StreamPanel } from "@/components/stream-panel";
 import { DataStreamSelector } from "@/components/data-stream-selector";
 import { ReportDrawer } from "@/components/report-drawer";
 import { SummaryModal } from "@/components/summary-modal";
-import { Shield, Users, Layers, FileBarChart, Radio } from "lucide-react";
+import { FRAGOBuilder } from "./components/frago-builder";
+import {
+  Shield,
+  Users,
+  Layers,
+  FileBarChart,
+  Radio,
+  FileText,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -52,6 +60,7 @@ export default function Home() {
   const [selectedUnit, setSelectedUnit] = useState("battalion");
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showFRAGOBuilder, setShowFRAGOBuilder] = useState(false);
 
   // New state for hierarchy tree and node selection
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
@@ -209,24 +218,34 @@ export default function Home() {
 
   return (
     <div className="dark min-h-screen bg-background grid-background">
-      <div className="container mx-auto p-6 space-y-6">
-        <header className="flex items-center justify-between bg-card/50 backdrop-blur-sm p-6 rounded-lg neumorphic">
+      <div className="container mx-auto p-3 space-y-3">
+        <header className="flex items-center justify-between bg-card/50 backdrop-blur-sm p-3 rounded-lg neumorphic">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight font-mono text-foreground">
+            <h1 className="text-2xl font-bold tracking-tight font-mono text-foreground">
               TACTICAL OPS DASHBOARD
             </h1>
-            <p className="text-muted-foreground mt-2">
-              Real-time battlefield reporting and soldier monitoring system
+            <p className="text-xs text-muted-foreground mt-1">
+              Real-time battlefield reporting and soldier monitoring
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowFRAGOBuilder(!showFRAGOBuilder)}
+              disabled={!selectedNode}
+              className="bg-foreground/10 hover:bg-foreground/20 text-foreground font-mono border border-border h-8 text-xs"
+              size="sm"
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              FRAGO
+            </Button>
             <Button
               onClick={() => setShowSummaryModal(true)}
-              className="bg-foreground/10 hover:bg-foreground/20 text-foreground font-mono border border-border"
+              className="bg-foreground/10 hover:bg-foreground/20 text-foreground font-mono border border-border h-8 text-xs"
+              size="sm"
             >
-              <FileBarChart className="h-4 w-4 mr-2" />
-              SUMMARIZE
+              <FileBarChart className="h-3 w-3 mr-1" />
+              SUMMARY
             </Button>
             <DataStreamSelector
               streams={unitLevels}
@@ -237,24 +256,33 @@ export default function Home() {
         </header>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           {/* Left: Hierarchy Tree */}
-          <div className="lg:col-span-1 h-[calc(100vh-200px)]">
+          <div className="lg:col-span-1 h-[calc(100vh-140px)]">
             <HierarchyTree
               onNodeSelect={handleNodeSelect}
               selectedNodeId={selectedNode?.id}
             />
           </div>
 
-          {/* Right: Split between Chat and Reports */}
-          <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* AI Chat */}
-            <div className="h-[calc(100vh-200px)]">
-              <AIChat selectedNode={selectedNode} reports={nodeReports} />
+          {/* Right: Split between Chat/FRAGO and Reports */}
+          <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {/* AI Chat or FRAGO Builder */}
+            <div className="h-[calc(100vh-140px)]">
+              {showFRAGOBuilder && selectedNode ? (
+                <FRAGOBuilder
+                  unitId={selectedNode.unit_id || selectedNode.id}
+                  unitName={selectedNode.name}
+                  soldierIds={collectSoldierIds(selectedNode)}
+                  reports={nodeReports}
+                />
+              ) : (
+                <AIChat selectedNode={selectedNode} reports={nodeReports} />
+              )}
             </div>
 
             {/* Node Reports */}
-            <div className="h-[calc(100vh-200px)]">
+            <div className="h-[calc(100vh-140px)]">
               <NodeReports
                 selectedNode={selectedNode}
                 reports={nodeReports}
