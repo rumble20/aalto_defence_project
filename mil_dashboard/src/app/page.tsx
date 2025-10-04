@@ -291,44 +291,6 @@ export default function Home() {
               />
             </div>
           </div>
-        </header>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-          {/* Left: Hierarchy Tree */}
-          <div className="lg:col-span-1 h-[calc(100vh-140px)]">
-            <HierarchyTree
-              onNodeSelect={handleNodeSelect}
-              selectedNodeId={selectedNode?.id}
-            />
-          </div>
-
-          {/* Right: Split between Chat/FRAGO and Reports */}
-          <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {/* AI Chat or FRAGO Builder */}
-            <div className="h-[calc(100vh-140px)]">
-              {showFRAGOBuilder && selectedNode ? (
-                <FRAGOBuilder
-                  unitId={selectedNode.unit_id || selectedNode.id}
-                  unitName={selectedNode.name}
-                  soldierIds={collectSoldierIds(selectedNode)}
-                  reports={nodeReports}
-                />
-              ) : (
-                <AIChat selectedNode={selectedNode} reports={nodeReports} />
-              )}
-            </div>
-
-            {/* Node Reports */}
-            <div className="h-[calc(100vh-140px)]">
-              <NodeReports
-                selectedNode={selectedNode}
-                reports={nodeReports}
-                loading={loadingNodeReports}
-                onReportClick={setSelectedItem}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
