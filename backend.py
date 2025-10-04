@@ -1,17 +1,24 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import sqlite3
 import paho.mqtt.client as mqtt
 import json
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import threading
 import logging
+import google.generativeai as genai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Configure Gemini API
+GEMINI_API_KEY = "AIzaSyB2LVUXt2a9nMCpJwGJWen4_EECudv9u_c"
+genai.configure(api_key=GEMINI_API_KEY)
+gemini_model = genai.GenerativeModel('gemini-pro')
 
 app = FastAPI(title="Military Hierarchy Backend", version="1.0.0")
 
@@ -167,7 +174,7 @@ async def get_all_soldiers():
     return {"soldiers": [dict(zip(columns, row)) for row in rows]}
 
 @app.get("/soldiers/{soldier_id}/raw_inputs")
-async def get_soldier_raw_inputs(soldier_id: str, limit: int = 50):
+async def get_soldier_raw_inputs(soldier_id: str, limit: int = 500):
     """Get raw inputs from a specific soldier."""
     conn = get_db_connection()
     c = conn.cursor()
@@ -187,7 +194,7 @@ async def get_soldier_raw_inputs(soldier_id: str, limit: int = 50):
     }
 
 @app.get("/soldiers/{soldier_id}/reports")
-async def get_soldier_reports(soldier_id: str, limit: int = 50):
+async def get_soldier_reports(soldier_id: str, limit: int = 500):
     """Get structured reports from a specific soldier."""
     conn = get_db_connection()
     c = conn.cursor()
@@ -211,7 +218,7 @@ async def get_soldier_reports(soldier_id: str, limit: int = 50):
     }
 
 @app.get("/reports")
-async def get_all_reports(limit: int = 100):
+async def get_all_reports(limit: int = 1000):
     """Get all structured reports."""
     conn = get_db_connection()
     c = conn.cursor()
@@ -271,16 +278,15 @@ async def get_military_hierarchy():
     conn = get_db_connection()
     c = conn.cursor()
     
-    # Get all units
-    c.execute("SELECT * FROM units ORDER BY level, name")
+    # Get all units - select specific columns to avoid unpacking issues
+    c.execute("SELECT unit_id, name, parent_unit_id, level FROM units ORDER BY level, name")
     units = c.fetchall()
     
     # Get all soldiers
     c.execute("""
-        SELECT s.*, u.name as unit_name, u.level as unit_level
+        SELECT s.soldier_id, s.name, s.rank, s.unit_id, s.device_id
         FROM soldiers s 
-        JOIN units u ON s.unit_id = u.unit_id 
-        ORDER BY u.level, s.rank, s.name
+        ORDER BY s.rank, s.name
     """)
     soldiers = c.fetchall()
     
@@ -300,7 +306,7 @@ async def get_military_hierarchy():
         }
     
     # Add soldiers to units
-    soldier_columns = ["soldier_id", "name", "rank", "unit_id", "device_id", "unit_name", "unit_level"]
+    soldier_columns = ["soldier_id", "name", "rank", "unit_id", "device_id"]
     for soldier in soldiers:
         soldier_data = dict(zip(soldier_columns, soldier))
         unit_id = soldier_data["unit_id"]
@@ -319,7 +325,86 @@ async def get_military_hierarchy():
     
     return {"hierarchy": hierarchy}
 
-# Startup event
+# Pydantic models for API
+class ChatMessage(BaseModel):
+    message: str
+    context: Dict[str, Any]
+
+@app.post("/ai/chat")
+async def ai_chat(chat_request: ChatMessage):
+    """
+    AI chat endpoint that analyzes reports using Google Gemini AI.
+    """
+    try:
+        message = chat_request.message
+        context = chat_request.context
+        
+        # Extract node info and reports from context
+        node = context.get("node", {})
+        reports = context.get("reports", [])
+        
+        # Build a response based on the message and reports
+        if not reports:
+            response = f"I don't have any reports available for {node.get('name', 'this node')}. Once reports are generated, I can help analyze them."
+        else:
+            # Prepare context for Gemini
+            report_count = len(reports)
+            
+            # Build a comprehensive context string
+            context_str = f"You are a military intelligence analyst AI assistant. You are analyzing reports for {node.get('name', 'a military unit')}.\n\n"
+            context_str += f"Total Reports: {report_count}\n\n"
+            
+            # Summarize reports by type
+            report_types = {}
+            for report in reports:
+                report_type = report.get("report_type", "UNKNOWN")
+                report_types[report_type] = report_types.get(report_type, 0) + 1
+            
+            context_str += "Report Summary:\n"
+            for rtype, count in report_types.items():
+                context_str += f"- {rtype}: {count} reports\n"
+            
+            # Add detailed report data (limit to recent 10 to avoid token limits)
+            context_str += "\n\nRecent Report Details:\n"
+            for i, report in enumerate(reports[:10], 1):
+                try:
+                    structured = json.loads(report.get("structured_json", "{}")) if isinstance(report.get("structured_json"), str) else report.get("structured_json", {})
+                    context_str += f"\n{i}. {report.get('report_type', 'UNKNOWN')} Report:\n"
+                    context_str += f"   Time: {report.get('timestamp', 'unknown')}\n"
+                    context_str += f"   From: {report.get('soldier_name', 'unknown')}\n"
+                    context_str += f"   Details: {json.dumps(structured, indent=2)}\n"
+                except Exception as e:
+                    logger.error(f"Error parsing report {i}: {e}")
+                    continue
+            
+            if report_count > 10:
+                context_str += f"\n(... and {report_count - 10} more reports)\n"
+            
+            # Build the full prompt
+            prompt = f"{context_str}\n\nUser Question: {message}\n\nProvide a clear, concise military intelligence analysis based on the reports above. Use appropriate military terminology and focus on actionable insights."
+            
+            try:
+                # Call Gemini API
+                gemini_response = gemini_model.generate_content(prompt)
+                response = gemini_response.text
+            except Exception as e:
+                logger.error(f"Gemini API error: {e}")
+                # Fallback to rule-based if Gemini fails
+                response = f"I'm analyzing {report_count} reports but encountered an issue with the AI service. Here's what I can tell you:\n\n"
+                type_summary = ", ".join([f"{count} {rtype}" for rtype, count in report_types.items()])
+                response += f"Report types: {type_summary}\n\n"
+                response += "Please try rephrasing your question or contact support if the issue persists."
+        
+        return {
+            "response": response,
+            "timestamp": datetime.now().isoformat(),
+            "reports_analyzed": len(reports)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in AI chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize MQTT client on startup."""
