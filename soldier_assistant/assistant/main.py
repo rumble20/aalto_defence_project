@@ -1,6 +1,6 @@
 from assistant.sst import clean_command, listen_once
 from assistant.parser import build_parser, parser_text
-from assistant.mqtt_client import publish_command
+from assistant.mqqtt_client import publish_command
 from assistant.wake import wait_for_wake_word, cleanup
 import json
 
