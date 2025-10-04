@@ -1,0 +1,19 @@
+Report type: ReportType.CASEVAC
+{
+  "action": "move",
+  "target_units": [
+    "Bravo",
+    "Code"
+  ],
+  "coordinates": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "timeframe": "immediate",
+  "priority": "HIGH",
+  "soldier_id": "UNKNOWN",
+  "radio_call_sign": null,
+  "extras": {},
+  "transmission_time": "2025-10-04T21:11:32.937666",
+  "received_time": "2025-10-04T21:11:32.937666"
+}

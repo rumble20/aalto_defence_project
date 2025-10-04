@@ -1,0 +1,21 @@
+{
+  "action": "hold",
+  "target_units": [
+    "Alpha Squad",
+    "Bravo Team",
+    "Hold"
+  ],
+  "coordinates": {
+    "x": 123.456,
+    "y": 789.012
+  },
+  "timeframe": "0800Z",
+  "priority": "HIGH",
+  "soldier_id": "A123",
+  "radio_call_sign": "EAGLE1",
+  "extras": {
+    "mission_id": "OP45"
+  },
+  "transmission_time": "2025-10-04T21:10:07.705491",
+  "received_time": "2025-10-04T21:10:07.705491"
+}
