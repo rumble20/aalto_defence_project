@@ -39,7 +39,7 @@ def main():
     
     # Check ports
     print("\nChecking Ports:")
-    ports = [8000, 3000, 3001]
+    ports = [8000, 3000]
     for port in ports:
         if check_port(port):
             print(f"OK Port {port}: LISTENING")
@@ -50,8 +50,7 @@ def main():
     print("\nChecking Services:")
     services = [
         ("http://localhost:8000/", "Backend API"),
-        ("http://localhost:3000/", "Main Dashboard"),
-        ("http://localhost:3001/", "Reports UI")
+        ("http://localhost:3000/", "Unified Dashboard (includes Reports)")
     ]
     
     working_services = 0
@@ -69,8 +68,7 @@ def main():
         print("\nWARNING: Some services are not running.")
         print("Try starting them manually:")
         print("1. Backend API: python backend.py")
-        print("2. Main Dashboard: cd mil_dashboard && npm run dev")
-        print("3. Reports UI: cd ui-for-reports/frontend && npm run dev")
+        print("2. Unified Dashboard: cd mil_dashboard && npm run dev")
 
 if __name__ == "__main__":
     main()
