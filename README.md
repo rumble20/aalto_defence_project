@@ -29,7 +29,9 @@ aalto_defence_project/
 │   └── src/lib/                     # Utilities
 ├── soldier_assistant/                # Raspberry Pi voice assistant
 │   └── RASPBERRY_PI_DEPLOYMENT.md
-├── Decoding_and_storing_LLM/        # LLM data encoding utilities
+├── Decoding_and_storing_LLM/                  # LLM data encoding utilities
+    ├── messyJSON_to_structuredJSON.py         # encoding a messy text into a structured JSON ready to be sent
+│   └── improved_military_report_formatter.py   # converts the JSON into a easily visualizable report        
 ├── scripts/                          # Utility scripts
 │   ├── populate_reports.py
 │   ├── send_test_report.py
